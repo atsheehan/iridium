@@ -1,5 +1,15 @@
 #version 150
 
+const float LEFT = 0.0;
+const float RIGHT = 8.0;
+const float BOTTOM = 0.0;
+const float TOP = 8.0;
+const float NEAR = 0.0;
+const float FAR = 8.0;
+const float WIDTH = RIGHT - LEFT;
+const float HEIGHT = TOP - BOTTOM;
+const float DEPTH = FAR - NEAR;
+
 void main() {
   vec3 near_bottom_left = vec3(0.0, 0.0, 0.0);
   vec3 near_bottom_right = vec3(1.0, 0.0, 0.0);
@@ -65,5 +75,11 @@ void main() {
   vertices[34] = near_bottom_left;
   vertices[35] = far_bottom_left;
 
-  gl_Position = vec4(vertices[gl_VertexID], 1.0);
+  mat4 world_to_clip_transform =
+    mat4(2.0 / WIDTH, 0.0, 0.0, -(RIGHT + LEFT) / WIDTH,
+         0.0, 2.0 / HEIGHT, 0.0, -(TOP + BOTTOM) / HEIGHT,
+         0.0, 0.0, 2.0 / DEPTH, -(FAR + NEAR) / DEPTH,
+         0.0, 0.0, 0.0, 1.0);
+
+  gl_Position = vec4(vertices[gl_VertexID], 1.0) * world_to_clip_transform;
 }
