@@ -99,11 +99,11 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn draw_triangle(&mut self) {
+    pub(crate) fn draw_cube(&mut self) {
         unsafe {
             gl::UseProgram(self.cube_program.gl_id());
             gl::BindVertexArray(self.cube_vertex_array_id);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
 
