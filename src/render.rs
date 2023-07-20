@@ -15,8 +15,8 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
-const VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
-const FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
+const CUBE_VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
+const CUBE_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
 
 pub(crate) struct Renderer {
     window: Window,
@@ -60,14 +60,20 @@ impl Renderer {
 
         gl::load_with(|s| display.get_proc_address(&CString::new(s).unwrap()));
 
-        let program = Program::build(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC).unwrap();
+        let cube_program =
+            Program::build(CUBE_VERTEX_SHADER_SRC, CUBE_FRAGMENT_SHADER_SRC).unwrap();
 
         unsafe {
-            let mut vertex_array_id = 0;
-            gl::GenVertexArrays(1, &mut vertex_array_id);
-            gl::BindVertexArray(vertex_array_id);
+            gl::UseProgram(cube_program.gl_id());
+        }
 
-            gl::UseProgram(program.gl_id());
+        unsafe {
+            let mut cube_vertex_array_id = 0;
+            gl::GenVertexArrays(1, &mut cube_vertex_array_id);
+            gl::BindVertexArray(cube_vertex_array_id);
+        }
+
+        unsafe {
             gl::ClearColor(0.6, 0.4, 0.8, 1.0);
         }
 
@@ -88,9 +94,9 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn draw_triangle(&mut self) {
+    pub(crate) fn draw_cube(&mut self) {
         unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
 

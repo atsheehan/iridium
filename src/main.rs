@@ -22,7 +22,7 @@ fn main() {
             }
             Event::RedrawRequested(window_id) if window_id == renderer.window_id() => {
                 renderer.clear();
-                renderer.draw_triangle();
+                renderer.draw_cube();
                 renderer.present();
             }
             _ => (),
