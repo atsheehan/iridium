@@ -1,6 +1,6 @@
 #version 150
 
-const float NEAR = 0.0;
+const float NEAR = 0.1;
 const float FAR = 10000.0;
 
 uniform vec3 position = vec3(2.0, 3.0, 6.0);
@@ -83,7 +83,7 @@ void main() {
   mat4 world_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
          0.0, 1.0, 0.0, 0.0,
-         0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, (-NEAR - FAR) / (NEAR - FAR), 2.0 * FAR * NEAR / (NEAR - FAR),
          0.0, 0.0, 1.0, 0.0);
 
   mat4 model_to_world_transform =
