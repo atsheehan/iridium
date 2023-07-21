@@ -1,6 +1,6 @@
-use std::ffi::CString;
+use std::{ffi::CString, fmt::Display};
 
-use gl::types::{GLenum, GLuint};
+use gl::types::{GLchar, GLenum, GLint, GLuint};
 use glutin::{
     config::ConfigTemplateBuilder,
     context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext, Version},
@@ -62,7 +62,8 @@ impl Renderer {
 
         gl::load_with(|s| display.get_proc_address(&CString::new(s).unwrap()));
 
-        let cube_program = Program::build(CUBE_VERTEX_SHADER_SRC, CUBE_FRAGMENT_SHADER_SRC);
+        let cube_program =
+            Program::build(CUBE_VERTEX_SHADER_SRC, CUBE_FRAGMENT_SHADER_SRC).unwrap();
 
         unsafe {
             gl::UseProgram(cube_program.gl_id());
@@ -118,22 +119,52 @@ struct Program {
 }
 
 impl Program {
-    fn build(vertex_shader_src: &str, fragment_shader_src: &str) -> Self {
-        let vertex_shader = Shader::compile(vertex_shader_src, ShaderType::Vertex);
-        let fragment_shader = Shader::compile(fragment_shader_src, ShaderType::Fragment);
+    fn build(vertex_shader_src: &str, fragment_shader_src: &str) -> Result<Self, ShaderError> {
+        let vertex_shader = Shader::compile(vertex_shader_src, ShaderType::Vertex)?;
+        let fragment_shader = Shader::compile(fragment_shader_src, ShaderType::Fragment)?;
 
         let program_id = unsafe { gl::CreateProgram() };
 
-        unsafe {
+        let linking_was_successful: bool = unsafe {
             gl::AttachShader(program_id, vertex_shader.gl_id());
             gl::AttachShader(program_id, fragment_shader.gl_id());
             gl::LinkProgram(program_id);
             gl::DetachShader(program_id, vertex_shader.gl_id());
             gl::DetachShader(program_id, fragment_shader.gl_id());
-        }
 
-        Self {
-            id: ProgramId(program_id),
+            let mut linking_was_successful: GLint = gl::FALSE as GLint;
+            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut linking_was_successful);
+
+            linking_was_successful == gl::TRUE as GLint
+        };
+
+        if linking_was_successful {
+            Ok(Self {
+                id: ProgramId(program_id),
+            })
+        } else {
+            let error_message_len: usize = unsafe {
+                let mut error_message_len = 0;
+                gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut error_message_len);
+                error_message_len as usize
+            };
+
+            let mut error_message_buffer: Vec<u8> = vec![b' '; error_message_len];
+            let mut bytes_read = 0;
+
+            unsafe {
+                gl::GetProgramInfoLog(
+                    program_id,
+                    error_message_len as GLint,
+                    &mut bytes_read,
+                    error_message_buffer.as_mut_ptr() as *mut GLchar,
+                );
+            }
+
+            let filled_buffer = &error_message_buffer[..(bytes_read as usize)];
+            let error_message = CString::new(filled_buffer).unwrap().into_string().unwrap();
+
+            Err(ShaderError::Linking(error_message))
         }
     }
 
@@ -149,16 +180,46 @@ struct Shader {
 }
 
 impl Shader {
-    fn compile(source: &str, shader_type: ShaderType) -> Self {
+    fn compile(source: &str, shader_type: ShaderType) -> Result<Self, ShaderError> {
         let source = CString::new(source).unwrap();
         let id = unsafe { gl::CreateShader(shader_type.gl_shader_type()) };
 
-        unsafe {
+        let compile_was_successful: bool = unsafe {
             gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
             gl::CompileShader(id);
-        }
 
-        Self { id: ShaderId(id) }
+            let mut compile_was_successful: GLint = gl::FALSE as GLint;
+            gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut compile_was_successful);
+
+            compile_was_successful == gl::TRUE as GLint
+        };
+
+        if compile_was_successful {
+            Ok(Self { id: ShaderId(id) })
+        } else {
+            let error_message_len: usize = unsafe {
+                let mut error_message_len = 0;
+                gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut error_message_len);
+                error_message_len as usize
+            };
+
+            let mut error_message_buffer: Vec<u8> = vec![b' '; error_message_len];
+            let mut bytes_read = 0;
+
+            unsafe {
+                gl::GetShaderInfoLog(
+                    id,
+                    error_message_len as GLint,
+                    &mut bytes_read,
+                    error_message_buffer.as_mut_ptr() as *mut GLchar,
+                );
+            }
+
+            let filled_buffer = &error_message_buffer[..(bytes_read as usize)];
+            let error_message = CString::new(filled_buffer).unwrap().into_string().unwrap();
+
+            Err(ShaderError::Compilation(error_message))
+        }
     }
 
     fn gl_id(&self) -> GLuint {
@@ -176,6 +237,21 @@ impl ShaderType {
         match self {
             Self::Vertex => gl::VERTEX_SHADER,
             Self::Fragment => gl::FRAGMENT_SHADER,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum ShaderError {
+    Compilation(String),
+    Linking(String),
+}
+
+impl Display for ShaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Compilation(error) => write!(f, "shader compilation error: {}", error),
+            Self::Linking(error) => write!(f, "shader linking error: {}", error),
         }
     }
 }
