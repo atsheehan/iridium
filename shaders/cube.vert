@@ -3,7 +3,7 @@
 const float NEAR = 0.1;
 const float FAR = 10000.0;
 
-uniform vec3 position = vec3(2.0, 3.0, 6.0);
+uniform vec3 position;
 
 out vec3 vertex_color;
 

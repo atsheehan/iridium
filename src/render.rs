@@ -15,6 +15,8 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
+use crate::math::Vec3;
+
 const CUBE_VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
 const CUBE_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
 
@@ -22,6 +24,7 @@ pub(crate) struct Renderer {
     window: Window,
     context: PossiblyCurrentContext,
     surface: Surface<WindowSurface>,
+    cube_program: Program,
 }
 
 impl Renderer {
@@ -82,6 +85,7 @@ impl Renderer {
             window,
             surface,
             context,
+            cube_program,
         }
     }
 
@@ -95,7 +99,9 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn draw_cube(&mut self) {
+    pub(crate) fn draw_cube(&mut self, position: &Vec3) {
+        self.cube_program.set_uniform_vec3("position", position);
+
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
@@ -164,6 +170,16 @@ impl Program {
 
     fn gl_id(&self) -> GLuint {
         self.id.0
+    }
+
+    fn set_uniform_vec3(&mut self, name: &str, value: &Vec3) {
+        let Vec3(x, y, z) = *value;
+
+        let cstr_name = CString::new(name).unwrap();
+        let location = unsafe { gl::GetUniformLocation(self.gl_id(), cstr_name.as_ptr()) };
+        unsafe {
+            gl::Uniform3f(location, x, y, z);
+        }
     }
 }
 
