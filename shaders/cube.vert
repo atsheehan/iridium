@@ -5,6 +5,8 @@ const float FAR = 10000.0;
 
 uniform vec3 position = vec3(2.0, 3.0, 6.0);
 
+out vec3 vertex_color;
+
 void main() {
   vec3 near_bottom_left = vec3(0.0, 0.0, 0.0);
   vec3 near_bottom_right = vec3(1.0, 0.0, 0.0);
@@ -70,6 +72,14 @@ void main() {
   vertices[34] = near_bottom_left;
   vertices[35] = far_bottom_left;
 
+  vec3 colors[6];
+  colors[0] = vec3(0.0, 1.0, 0.0);
+  colors[1] = vec3(1.0, 0.0, 0.0);
+  colors[2] = vec3(0.0, 0.0, 1.0);
+  colors[3] = vec3(1.0, 0.0, 1.0);
+  colors[4] = vec3(0.0, 1.0, 1.0);
+  colors[5] = vec3(1.0, 1.0, 0.0);
+
   mat4 world_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
          0.0, 1.0, 0.0, 0.0,
@@ -83,4 +93,6 @@ void main() {
          0.0, 0.0, 0.0, 1.0);
 
   gl_Position = vec4(vertices[gl_VertexID], 1.0) * model_to_world_transform * world_to_clip_transform;
+
+  vertex_color = colors[gl_VertexID / 6];
 }
