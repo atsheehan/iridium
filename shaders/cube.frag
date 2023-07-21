@@ -1,8 +1,10 @@
 #version 150
 
-out vec3 color;
-in vec3 vertex_color;
+out vec4 color;
+in vec2 vertex_tex_coord;
+
+uniform sampler2D tex_sampler;
 
 void main() {
-  color = vertex_color;
+  color = texture(tex_sampler, vertex_tex_coord);
 }
