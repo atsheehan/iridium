@@ -108,6 +108,13 @@ impl Renderer {
                 gl::UNSIGNED_BYTE,
                 data.as_ptr() as *const c_void,
             );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_MIN_FILTER,
+                gl::NEAREST_MIPMAP_NEAREST as GLint,
+            );
+
             gl::GenerateMipmap(gl::TEXTURE_2D);
         }
 
