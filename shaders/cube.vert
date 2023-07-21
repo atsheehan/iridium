@@ -1,14 +1,7 @@
 #version 330
 
-const float LEFT = 0.0;
-const float RIGHT = 8.0;
-const float BOTTOM = 0.0;
-const float TOP = 8.0;
 const float NEAR = 0.0;
-const float FAR = 8.0;
-const float WIDTH = RIGHT - LEFT;
-const float HEIGHT = TOP - BOTTOM;
-const float DEPTH = FAR - NEAR;
+const float FAR = 10000.0;
 
 uniform vec3 position = vec3(2.0, 3.0, 6.0);
 
@@ -78,10 +71,10 @@ void main() {
   vertices[35] = far_bottom_left;
 
   mat4 world_to_clip_transform =
-    mat4(2.0 / WIDTH, 0.0, 0.0, -(RIGHT + LEFT) / WIDTH,
-         0.0, 2.0 / HEIGHT, 0.0, -(TOP + BOTTOM) / HEIGHT,
-         0.0, 0.0, 2.0 / DEPTH, -(FAR + NEAR) / DEPTH,
-         0.0, 0.0, 0.0, 1.0);
+    mat4(1.0, 0.0, 0.0, 0.0,
+         0.0, 1.0, 0.0, 0.0,
+         0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0, 0.0);
 
   mat4 model_to_world_transform =
     mat4(1.0, 0.0, 0.0, position.x,
