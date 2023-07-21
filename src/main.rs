@@ -1,5 +1,7 @@
+mod math;
 mod render;
 
+use math::Vec3;
 use render::Renderer;
 use winit::{
     event::{Event, WindowEvent},
@@ -23,7 +25,10 @@ fn main() {
                 window_id,
             } if window_id == renderer.window_id() => {
                 renderer.clear();
-                renderer.draw_cube();
+                renderer.draw_cube(&Vec3(2.0, 3.0, 6.0));
+                renderer.draw_cube(&Vec3(-4.0, 0.0, 6.0));
+                renderer.draw_cube(&Vec3(5.0, 10.0, 30.0));
+                renderer.draw_cube(&Vec3(20.0, -23.0, 30.0));
                 renderer.present();
             }
             _ => (),
