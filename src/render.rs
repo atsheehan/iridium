@@ -1,6 +1,9 @@
-use std::{ffi::CString, fmt::Display};
+use std::{
+    ffi::{c_void, CString},
+    fmt::Display,
+};
 
-use gl::types::{GLchar, GLenum, GLint, GLuint};
+use gl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 use glutin::{
     config::ConfigTemplateBuilder,
     context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext, Version},
@@ -26,6 +29,7 @@ pub(crate) struct Renderer {
     surface: Surface<WindowSurface>,
     cube_program: Program,
     cube_vertex_array_id: GLuint,
+    cube_texture_id: GLuint,
 }
 
 impl Renderer {
@@ -78,6 +82,39 @@ impl Renderer {
             cube_vertex_array_id
         };
 
+        let cube_texture_id = unsafe {
+            let mut cube_texture_id = 0;
+            gl::GenTextures(1, &mut cube_texture_id);
+            gl::BindTexture(gl::TEXTURE_2D, cube_texture_id);
+
+            const TEXTURE_WIDTH: usize = 2;
+            const TEXTURE_HEIGHT: usize = 2;
+            const VALUES_PER_PIXEL: usize = 3;
+            const TEXTURE_SIZE: usize = TEXTURE_WIDTH * TEXTURE_HEIGHT * VALUES_PER_PIXEL;
+
+            #[rustfmt::skip]
+            let data: [u8; TEXTURE_SIZE] = [
+                252, 244, 183,
+                137, 233, 51,
+                117, 21, 246,
+                157, 12, 112
+            ];
+
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGB8 as GLint,
+                TEXTURE_WIDTH as GLsizei,
+                TEXTURE_HEIGHT as GLsizei,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as *const c_void,
+            );
+            gl::GenerateMipmap(gl::TEXTURE_2D);
+            cube_texture_id
+        };
+
         unsafe {
             gl::ClearColor(0.6, 0.4, 0.8, 1.0);
             gl::Enable(gl::DEPTH_TEST);
@@ -89,6 +126,7 @@ impl Renderer {
             context,
             cube_program,
             cube_vertex_array_id,
+            cube_texture_id,
         }
     }
 
@@ -108,6 +146,7 @@ impl Renderer {
         unsafe {
             gl::UseProgram(self.cube_program.gl_id());
             gl::BindVertexArray(self.cube_vertex_array_id);
+            gl::BindTexture(gl::TEXTURE_2D, self.cube_texture_id);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
