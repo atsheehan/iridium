@@ -6,7 +6,7 @@ const float FAR = 10000.0;
 uniform vec3 position;
 uniform float aspect_ratio = 1.0;
 
-out vec3 vertex_color;
+out vec2 vertex_tex_coord;
 
 void main() {
   vec3 near_bottom_left = vec3(0.0, 0.0, 0.0);
@@ -73,13 +73,14 @@ void main() {
   vertices[34] = near_bottom_left;
   vertices[35] = far_bottom_left;
 
-  vec3 colors[6];
-  colors[0] = vec3(0.0, 1.0, 0.0);
-  colors[1] = vec3(1.0, 0.0, 0.0);
-  colors[2] = vec3(0.0, 0.0, 1.0);
-  colors[3] = vec3(1.0, 0.0, 1.0);
-  colors[4] = vec3(0.0, 1.0, 1.0);
-  colors[5] = vec3(1.0, 1.0, 0.0);
+  vec2 texture_coordinates[6];
+  texture_coordinates[0] = vec2(0.0, 0.0);
+  texture_coordinates[1] = vec2(1.0, 0.0);
+  texture_coordinates[2] = vec2(1.0, 1.0);
+  texture_coordinates[3] = vec2(1.0, 1.0);
+  texture_coordinates[4] = vec2(0.0, 1.0);
+  texture_coordinates[5] = vec2(0.0, 0.0);
+  vertex_tex_coord = texture_coordinates[gl_VertexID % 6];
 
   mat4 world_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
@@ -94,6 +95,4 @@ void main() {
          0.0, 0.0, 0.0, 1.0);
 
   gl_Position = vec4(vertices[gl_VertexID], 1.0) * model_to_world_transform * world_to_clip_transform;
-
-  vertex_color = colors[gl_VertexID / 6];
 }
