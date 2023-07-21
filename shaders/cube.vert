@@ -10,6 +10,8 @@ const float WIDTH = RIGHT - LEFT;
 const float HEIGHT = TOP - BOTTOM;
 const float DEPTH = FAR - NEAR;
 
+uniform vec3 position = vec3(2.0, 3.0, 6.0);
+
 void main() {
   vec3 near_bottom_left = vec3(0.0, 0.0, 0.0);
   vec3 near_bottom_right = vec3(1.0, 0.0, 0.0);
@@ -81,5 +83,11 @@ void main() {
          0.0, 0.0, 2.0 / DEPTH, -(FAR + NEAR) / DEPTH,
          0.0, 0.0, 0.0, 1.0);
 
-  gl_Position = vec4(vertices[gl_VertexID], 1.0) * world_to_clip_transform;
+  mat4 model_to_world_transform =
+    mat4(1.0, 0.0, 0.0, position.x,
+         0.0, 1.0, 0.0, position.y,
+         0.0, 0.0, 1.0, position.z,
+         0.0, 0.0, 0.0, 1.0);
+
+  gl_Position = vec4(vertices[gl_VertexID], 1.0) * model_to_world_transform * world_to_clip_transform;
 }
