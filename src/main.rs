@@ -1,19 +1,22 @@
 mod math;
 mod render;
+mod world;
 
-use math::Vec3;
 use render::Renderer;
 use winit::{
     event::{ElementState, Event, KeyEvent, WindowEvent},
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
 };
+use world::World;
 
 fn main() {
     let options = get_options();
 
     let event_loop = EventLoop::new().unwrap();
     let mut renderer = Renderer::new(&event_loop, options.windowed);
+
+    let world = World::new(20, 20);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -50,10 +53,11 @@ fn main() {
             } if window_id == renderer.window_id() => {
                 renderer.set_viewport();
                 renderer.clear();
-                renderer.draw_cube(&Vec3(2.0, 3.0, 6.0));
-                renderer.draw_cube(&Vec3(-4.0, 0.0, 6.0));
-                renderer.draw_cube(&Vec3(5.0, 10.0, 30.0));
-                renderer.draw_cube(&Vec3(20.0, -23.0, 30.0));
+
+                for position in world.block_positions() {
+                    renderer.draw_cube(&position);
+                }
+
                 renderer.present();
             }
             _ => (),
