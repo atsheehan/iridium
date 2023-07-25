@@ -2,12 +2,18 @@ mod math;
 mod render;
 mod world;
 
+use std::time::{Duration, Instant};
+
 use render::Renderer;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 use world::World;
+
+const FRAMES_PER_SECOND: u64 = 60;
+const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+const FRAME_DURATION: Duration = Duration::from_nanos(NANOSECONDS_PER_SECOND / FRAMES_PER_SECOND);
 
 fn main() {
     let options = get_options();
@@ -16,6 +22,8 @@ fn main() {
     let mut renderer = Renderer::new(&event_loop, options.windowed);
 
     let mut world = World::new(20, 20);
+
+    let mut last_instant = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -75,7 +83,10 @@ fn main() {
                 renderer.set_viewport();
             }
             Event::MainEventsCleared => {
-                world.update();
+                while Instant::now() - last_instant > FRAME_DURATION {
+                    world.update();
+                    last_instant += FRAME_DURATION;
+                }
 
                 renderer.set_camera(world.camera());
                 renderer.clear();
