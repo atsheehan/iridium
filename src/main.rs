@@ -1,10 +1,12 @@
 mod math;
 mod render;
+mod time;
 mod world;
 
 use std::time::{Duration, Instant};
 
 use render::Renderer;
+use time::FrameCounter;
 use winit::{
     event::{ElementState, Event, KeyEvent, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -25,6 +27,7 @@ fn main() {
     let mut world = World::new(20, 20);
 
     let mut last_instant = Instant::now();
+    let mut fps_counter = FrameCounter::new(last_instant);
 
     event_loop.set_control_flow(ControlFlow::Poll);
     event_loop
@@ -98,9 +101,11 @@ fn main() {
                 renderer.set_viewport();
             }
             Event::AboutToWait => {
-                while Instant::now() - last_instant > FRAME_DURATION {
+                let mut current_instant = Instant::now();
+                while current_instant - last_instant > FRAME_DURATION {
                     world.update();
                     last_instant += FRAME_DURATION;
+                    current_instant = Instant::now();
                 }
 
                 renderer.set_camera(world.camera());
@@ -111,6 +116,7 @@ fn main() {
                 }
 
                 renderer.present();
+                fps_counter.finish_frame(current_instant);
             }
             _ => (),
         })
