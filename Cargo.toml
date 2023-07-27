@@ -15,3 +15,6 @@ glutin = "0.30.8"
 glutin-winit = "0.3.0"
 raw-window-handle = "0.5.2"
 gl = "0.14.0"
+
+[profile.release]
+debug = true

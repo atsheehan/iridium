@@ -23,7 +23,7 @@ fn main() {
     let event_loop = EventLoop::new();
     let mut renderer = Renderer::new(&event_loop, options.windowed);
 
-    let mut world = World::new(20, 20);
+    let mut world = World::new(400, 400);
 
     let mut last_instant = Instant::now();
     let mut fps_counter = FrameCounter::new(last_instant);
