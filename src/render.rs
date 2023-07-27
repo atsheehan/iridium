@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::{c_void, CString},
     fmt::Display,
 };
@@ -197,6 +198,7 @@ struct ProgramId(GLuint);
 
 struct Program {
     id: ProgramId,
+    cached_uniform_locations: HashMap<&'static str, GLint>,
 }
 
 impl Program {
@@ -222,6 +224,7 @@ impl Program {
         if linking_was_successful {
             Ok(Self {
                 id: ProgramId(program_id),
+                cached_uniform_locations: HashMap::new(),
             })
         } else {
             let error_message_len: usize = unsafe {
@@ -253,7 +256,7 @@ impl Program {
         self.id.0
     }
 
-    fn set_uniform_vec3(&mut self, name: &str, value: &Vec3) {
+    fn set_uniform_vec3(&mut self, name: &'static str, value: &Vec3) {
         let Vec3(x, y, z) = *value;
 
         unsafe {
@@ -261,15 +264,22 @@ impl Program {
         }
     }
 
-    fn set_uniform_f32(&mut self, name: &str, value: &f32) {
+    fn set_uniform_f32(&mut self, name: &'static str, value: &f32) {
         unsafe {
             gl::Uniform1f(self.uniform_location(name), *value);
         }
     }
 
-    fn uniform_location(&self, name: &str) -> GLint {
-        let cstr_name = CString::new(name).unwrap();
-        unsafe { gl::GetUniformLocation(self.gl_id(), cstr_name.as_ptr()) }
+    fn uniform_location(&mut self, name: &'static str) -> GLint {
+        match self.cached_uniform_locations.get(name) {
+            Some(location) => *location,
+            None => {
+                let cstr_name = CString::new(name).unwrap();
+                let location = unsafe { gl::GetUniformLocation(self.gl_id(), cstr_name.as_ptr()) };
+                self.cached_uniform_locations.insert(name, location);
+                location
+            }
+        }
     }
 }
 
