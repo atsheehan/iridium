@@ -32,6 +32,7 @@ pub(crate) struct Renderer {
     context: PossiblyCurrentContext,
     surface: Surface<WindowSurface>,
     cube_program: Program,
+    cube_count: usize,
 }
 
 impl Renderer {
@@ -148,6 +149,7 @@ impl Renderer {
             surface,
             context,
             cube_program,
+            cube_count: 0,
         }
     }
 
@@ -161,22 +163,26 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn draw_cubes(&mut self, positions: impl Iterator<Item = Vec3>) {
+    pub(crate) fn draw_cubes(&mut self) {
+        unsafe {
+            gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, self.cube_count as GLint);
+        }
+    }
+
+    pub(crate) fn update_block_cache(&mut self, positions: impl Iterator<Item = Vec3>) {
         let position_buffer: Vec<f32> = positions
             .flat_map(|position| [position.x(), position.y(), position.z()])
             .collect();
 
-        let num_instances = position_buffer.len() / 3;
+        self.cube_count = position_buffer.len() / 3;
 
         unsafe {
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (std::mem::size_of::<f32>() * 3 * num_instances) as isize,
+                (std::mem::size_of::<f32>() * 3 * self.cube_count) as isize,
                 position_buffer.as_ptr() as *const c_void,
                 gl::STATIC_DRAW,
             );
-
-            gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, num_instances as GLint);
         }
     }
 
