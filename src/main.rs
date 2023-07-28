@@ -24,7 +24,8 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let mut renderer = Renderer::new(&event_loop, options.windowed);
 
-    let mut world = World::new(400, 400);
+    let mut world = World::new(1000, 1000);
+    renderer.update_block_cache(world.block_positions());
 
     let mut last_instant = Instant::now();
     let mut fps_counter = FrameCounter::new(last_instant);
@@ -117,7 +118,7 @@ fn main() {
                 renderer.set_camera(world.camera());
                 renderer.clear();
 
-                renderer.draw_cubes(world.block_positions());
+                renderer.draw_cubes();
 
                 renderer.present();
                 fps_counter.finish_frame(current_instant);
