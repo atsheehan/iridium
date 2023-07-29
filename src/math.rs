@@ -1,13 +1,31 @@
-use std::ops::{Add, Div};
+use std::ops::{Add, Div, Sub};
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec2(pub(crate) f32, pub(crate) f32);
+
+impl Vec2 {
+    pub(crate) fn from_angle(angle: f32) -> Self {
+        Self(angle.cos(), angle.sin())
+    }
+
+    pub(crate) fn dot(&self, rhs: &Vec2) -> f32 {
+        self.0 * rhs.0 + self.1 * rhs.1
+    }
+}
 
 impl Div<f32> for Vec2 {
     type Output = Vec2;
 
     fn div(self, denominator: f32) -> Self::Output {
         Self(self.0 / denominator, self.1 / denominator)
+    }
+}
+
+impl Sub<Vec2> for Vec2 {
+    type Output = Vec2;
+
+    fn sub(self, rhs: Vec2) -> Self::Output {
+        Vec2(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
 
@@ -124,6 +142,53 @@ mod tests {
         let vecs_equal = (a.0 - b.0).abs() < TOLERANCE
             && (a.1 - b.1).abs() < TOLERANCE
             && (a.2 - b.2).abs() < TOLERANCE;
+        assert!(
+            vecs_equal,
+            "vecs are not equal:\n  left: {:?}\n right: {:?}\n",
+            a, b
+        );
+    }
+
+    #[test]
+    fn check_distribution_of_random_f32s() {
+        const NUM_EXAMPLES: u32 = 10_000;
+        const NUM_BUCKETS: u32 = 10;
+        const EXPECTED_BUCKET_COUNT: u32 = NUM_EXAMPLES / NUM_BUCKETS;
+        const MAX_ALLOWED_DEVIATION: u32 = 100;
+
+        let mut buckets = [0; NUM_BUCKETS as usize];
+        let mut rng = RandomNumberGenerator::with_seed(314159);
+
+        for _ in 0..NUM_EXAMPLES {
+            let value = rng.gen_f32();
+            let i = (value / 0.1) as usize;
+            buckets[i] += 1;
+        }
+
+        for count in buckets.iter() {
+            assert!((*count - EXPECTED_BUCKET_COUNT as i32).unsigned_abs() < MAX_ALLOWED_DEVIATION);
+        }
+    }
+
+    #[test]
+    fn create_vec2_from_angle() {
+        let examples = [
+            (0.0, Vec2(1.0, 0.0)),
+            (PI, Vec2(-1.0, 0.0)),
+            (2.0 * PI, Vec2(1.0, 0.0)),
+            (FRAC_PI_2, Vec2(0.0, 1.0)),
+            (FRAC_PI_3, Vec2(0.5, 0.866025)),
+        ];
+
+        for (angle, expected) in examples.into_iter() {
+            let actual = Vec2::from_angle(angle);
+            assert_vec2s_equal(&actual, &expected);
+        }
+    }
+
+    fn assert_vec2s_equal(a: &Vec2, b: &Vec2) {
+        const TOLERANCE: f32 = 0.00001;
+        let vecs_equal = (a.0 - b.0).abs() < TOLERANCE && (a.1 - b.1).abs() < TOLERANCE;
         assert!(
             vecs_equal,
             "vecs are not equal:\n  left: {:?}\n right: {:?}\n",

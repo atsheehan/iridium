@@ -119,14 +119,18 @@ impl Renderer {
 
             const TEXTURE_WIDTH: usize = 8;
             const TEXTURE_HEIGHT: usize = 8;
+            const NUM_PIXELS: usize = TEXTURE_WIDTH * TEXTURE_HEIGHT;
             const VALUES_PER_PIXEL: usize = 3;
-            const TEXTURE_SIZE: usize = TEXTURE_WIDTH * TEXTURE_HEIGHT * VALUES_PER_PIXEL;
+            const TEXTURE_SIZE: usize = NUM_PIXELS * VALUES_PER_PIXEL;
 
             let mut rng = RandomNumberGenerator::with_seed(42);
-            let mut data: Vec<u8> = Vec::with_capacity(TEXTURE_SIZE);
+            let mut texture: Vec<u8> = Vec::with_capacity(TEXTURE_SIZE);
 
-            for _ in 0..TEXTURE_SIZE {
-                data.push(rng.gen_range(120, 180) as u8);
+            for _ in 0..NUM_PIXELS {
+                let value = rng.gen_range(50, 200) as u8;
+                texture.push(value);
+                texture.push(value);
+                texture.push(value);
             }
 
             gl::TexImage2D(
@@ -138,7 +142,7 @@ impl Renderer {
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,
-                data.as_ptr() as *const c_void,
+                texture.as_ptr() as *const c_void,
             );
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(
@@ -337,7 +341,6 @@ impl Renderer {
         program.set_uniform_f32("camera_pitch", &camera.pitch());
 
         let mut program = self.activate_skybox_program();
-        program.set_uniform_vec3("camera_position", camera.position());
         program.set_uniform_f32("camera_heading", &camera.heading());
         program.set_uniform_f32("camera_pitch", &camera.pitch());
     }
