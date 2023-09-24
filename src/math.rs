@@ -1,6 +1,9 @@
 use std::ops::Add;
 
 #[derive(Debug, Copy, Clone)]
+pub(crate) struct Vec2(pub(crate) f32, pub(crate) f32);
+
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec3(pub(crate) f32, pub(crate) f32, pub(crate) f32);
 
 impl Vec3 {
@@ -39,6 +42,10 @@ impl Vec3 {
 
     pub(crate) fn z(&self) -> f32 {
         self.2
+    }
+
+    pub(crate) fn xz(&self) -> Vec2 {
+        Vec2(self.0, self.2)
     }
 }
 
