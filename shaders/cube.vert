@@ -11,6 +11,7 @@ uniform float camera_pitch;
 uniform float aspect_ratio = 1.0;
 
 out vec2 vertex_tex_coord;
+out vec3 vertex_normal;
 
 void main() {
   vec3 near_bottom_left = vec3(0.0, 0.0, 0.0);
@@ -85,6 +86,15 @@ void main() {
   texture_coordinates[4] = vec2(0.0, 1.0);
   texture_coordinates[5] = vec2(0.0, 0.0);
   vertex_tex_coord = texture_coordinates[gl_VertexID % 6];
+
+  vec3 normals[6];
+  normals[0] = vec3(0.0, 0.0, -1.0); // Front
+  normals[1] = vec3(1.0, 0.0, 0.0); // Right
+  normals[2] = vec3(0.0, 0.0, 1.0); // Far
+  normals[3] = vec3(-1.0, 0.0, 0.0); // Left
+  normals[4] = vec3(0.0, 1.0, 0.0); // Top
+  normals[5] = vec3(0.0, -1.0, 0.0); // Bottom
+  vertex_normal = normals[gl_VertexID / 6];
 
   mat4 camera_translation =
     mat4(1.0, 0.0, 0.0, -camera_position.x,
