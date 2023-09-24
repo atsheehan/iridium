@@ -1,6 +1,6 @@
-use crate::math::{RandomNumberGenerator, Vec3};
+use crate::math::{Vec2, Vec3};
 
-const MOUSE_SENSITIVITY: f32 = 0.001;
+const MOUSE_SENSITIVITY: f32 = 0.01;
 const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
@@ -21,13 +21,23 @@ impl World {
             pitch: 0.0,
         };
 
-        let mut rng = RandomNumberGenerator::with_seed(42);
         let xz_area = (x_width * z_depth) as usize;
 
-        let mut heights = Vec::with_capacity(xz_area);
+        let heightmap = Heightmap::new(Vec2((x_width / 2) as f32, (z_depth / 2) as f32), 25.0);
+        let min_height = 1;
+        let height_range = y_height - min_height;
 
-        for _ in 0..xz_area {
-            heights.push(rng.gen_range(1, y_height));
+        let mut heights = Vec::with_capacity(xz_area);
+        for x in 0..x_width {
+            for z in 0..z_depth {
+                let coordinate = Coordinates(x, 0, z);
+                let xz_position = coordinate.center().xz();
+
+                let height = heightmap.height_at(xz_position.0, xz_position.1);
+                let scaled_height = (height * height_range as f32) as u32 + min_height;
+
+                heights.push(scaled_height);
+            }
         }
 
         Self {
@@ -134,5 +144,40 @@ impl Camera {
 
     pub(crate) fn pitch(&self) -> f32 {
         self.pitch
+    }
+}
+
+/// Describes how elevation varies across the x-z plane.
+struct Heightmap {
+    center: Vec2,
+    spread: f32,
+}
+
+impl Heightmap {
+    fn new(center: Vec2, spread: f32) -> Self {
+        Self { center, spread }
+    }
+
+    fn height_at(&self, x: f32, z: f32) -> f32 {
+        let Vec2(x_center, z_center) = self.center;
+        let spread = self.spread * self.spread * 2.0;
+
+        let dx = x_center - x;
+        let dz = z_center - z;
+
+        let x_term = (dx * dx) / spread;
+        let z_term = (dz * dz) / spread;
+
+        let sum = -(x_term + z_term);
+        sum.exp()
+    }
+}
+
+struct Coordinates(u32, u32, u32);
+
+impl Coordinates {
+    fn center(&self) -> Vec3 {
+        let Self(x, y, z) = *self;
+        Vec3(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5)
     }
 }
