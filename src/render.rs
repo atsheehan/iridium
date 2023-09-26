@@ -26,6 +26,8 @@ use crate::{
 
 const CUBE_VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
 const CUBE_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
+const SKYBOX_VERTEX_SHADER_SRC: &str = include_str!("../shaders/skybox.vert");
+const SKYBOX_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/skybox.frag");
 
 pub(crate) struct Renderer {
     window: Window,
@@ -36,6 +38,9 @@ pub(crate) struct Renderer {
     cube_texture_id: GLuint,
     position_array_buffer_id: GLuint,
     cube_count: usize,
+    skybox_program: Program,
+    skybox_vertex_array_id: GLuint,
+    skybox_texture_id: GLuint,
 }
 
 impl Renderer {
@@ -86,7 +91,8 @@ impl Renderer {
             Program::build(CUBE_VERTEX_SHADER_SRC, CUBE_FRAGMENT_SHADER_SRC).unwrap();
 
         unsafe {
-            gl::UseProgram(cube_program.gl_id());
+            gl::Enable(gl::DEPTH_TEST);
+            gl::DepthFunc(gl::LEQUAL);
         }
 
         let cube_vertex_array_id = unsafe {
@@ -145,6 +151,110 @@ impl Renderer {
             cube_texture_id
         };
 
+        let skybox_program =
+            Program::build(SKYBOX_VERTEX_SHADER_SRC, SKYBOX_FRAGMENT_SHADER_SRC).unwrap();
+
+        let skybox_vertex_array_id = unsafe {
+            let mut skybox_vertex_array_id = 0;
+            gl::GenVertexArrays(1, &mut skybox_vertex_array_id);
+            gl::BindVertexArray(skybox_vertex_array_id);
+            skybox_vertex_array_id
+        };
+
+        let skybox_texture_id = unsafe {
+            let mut skybox_texture_id = 0;
+            gl::GenTextures(1, &mut skybox_texture_id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox_texture_id);
+
+            let image_data: Vec<u8> = vec![100, 100, 100, 200, 200, 200, 50, 50, 50, 210, 210, 100];
+
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_POSITIVE_X,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
+                0,
+                gl::RGB8 as GLint,
+                2,
+                2,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+
+            // gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            // gl::TexParameteri(
+            //     gl::TEXTURE_CUBE_MAP,
+            //     gl::TEXTURE_MIN_FILTER,
+            //     gl::NEAREST_MIPMAP_NEAREST as GLint,
+            // );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MIN_FILTER,
+                gl::NEAREST as i32,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_CUBE_MAP,
+                gl::TEXTURE_MAG_FILTER,
+                gl::NEAREST as i32,
+            );
+
+            skybox_texture_id
+        };
+
         unsafe {
             gl::ClearColor(0.6, 0.4, 0.8, 1.0);
             gl::Enable(gl::DEPTH_TEST);
@@ -159,6 +269,9 @@ impl Renderer {
             cube_texture_id,
             position_array_buffer_id,
             cube_count: 0,
+            skybox_program,
+            skybox_vertex_array_id,
+            skybox_texture_id,
         }
     }
 
@@ -178,6 +291,15 @@ impl Renderer {
             gl::BindVertexArray(self.cube_vertex_array_id);
             gl::BindTexture(gl::TEXTURE_2D, self.cube_texture_id);
             gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, self.cube_count as GLint);
+        }
+    }
+
+    pub(crate) fn draw_skybox(&mut self) {
+        unsafe {
+            gl::UseProgram(self.skybox_program.gl_id());
+            gl::BindVertexArray(self.skybox_vertex_array_id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.skybox_texture_id);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
 
@@ -206,7 +328,13 @@ impl Renderer {
     pub(crate) fn set_viewport(&mut self) {
         let window_size = self.window.inner_size();
         let aspect_ratio = window_size.width as f32 / window_size.height as f32;
+
+        self.cube_program.activate();
         self.cube_program
+            .set_uniform_f32("aspect_ratio", &aspect_ratio);
+
+        self.skybox_program.activate();
+        self.skybox_program
             .set_uniform_f32("aspect_ratio", &aspect_ratio);
 
         unsafe {
@@ -215,11 +343,20 @@ impl Renderer {
     }
 
     pub(crate) fn set_camera(&mut self, camera: &Camera) {
+        self.cube_program.activate();
         self.cube_program
             .set_uniform_vec3("camera_position", camera.position());
         self.cube_program
             .set_uniform_f32("camera_heading", &camera.heading());
         self.cube_program
+            .set_uniform_f32("camera_pitch", &camera.pitch());
+
+        self.skybox_program.activate();
+        self.skybox_program
+            .set_uniform_vec3("camera_position", camera.position());
+        self.skybox_program
+            .set_uniform_f32("camera_heading", &camera.heading());
+        self.skybox_program
             .set_uniform_f32("camera_pitch", &camera.pitch());
     }
 }
@@ -309,6 +446,12 @@ impl Program {
                 self.cached_uniform_locations.insert(name, location);
                 location
             }
+        }
+    }
+
+    fn activate(&mut self) {
+        unsafe {
+            gl::UseProgram(self.gl_id());
         }
     }
 }
