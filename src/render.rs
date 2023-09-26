@@ -32,6 +32,8 @@ pub(crate) struct Renderer {
     context: PossiblyCurrentContext,
     surface: Surface<WindowSurface>,
     cube_program: Program,
+    cube_vertex_array_id: GLuint,
+    cube_texture_id: GLuint,
     cube_count: usize,
 }
 
@@ -86,11 +88,12 @@ impl Renderer {
             gl::UseProgram(cube_program.gl_id());
         }
 
-        unsafe {
+        let cube_vertex_array_id = unsafe {
             let mut cube_vertex_array_id = 0;
             gl::GenVertexArrays(1, &mut cube_vertex_array_id);
             gl::BindVertexArray(cube_vertex_array_id);
-        }
+            cube_vertex_array_id
+        };
 
         unsafe {
             let mut position_array_id = 0;
@@ -101,7 +104,7 @@ impl Renderer {
             gl::VertexAttribDivisor(0, 1);
         }
 
-        unsafe {
+        let cube_texture_id = unsafe {
             let mut cube_texture_id = 0;
             gl::GenTextures(1, &mut cube_texture_id);
             gl::BindTexture(gl::TEXTURE_2D, cube_texture_id);
@@ -137,7 +140,8 @@ impl Renderer {
             );
 
             gl::GenerateMipmap(gl::TEXTURE_2D);
-        }
+            cube_texture_id
+        };
 
         unsafe {
             gl::ClearColor(0.6, 0.4, 0.8, 1.0);
@@ -149,6 +153,8 @@ impl Renderer {
             surface,
             context,
             cube_program,
+            cube_vertex_array_id,
+            cube_texture_id,
             cube_count: 0,
         }
     }
@@ -165,6 +171,9 @@ impl Renderer {
 
     pub(crate) fn draw_cubes(&mut self) {
         unsafe {
+            gl::BindVertexArray(self.cube_vertex_array_id);
+            gl::BindTexture(gl::TEXTURE_2D, self.cube_texture_id);
+
             gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, self.cube_count as GLint);
         }
     }
