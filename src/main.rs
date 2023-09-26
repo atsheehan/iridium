@@ -104,6 +104,7 @@ fn main() {
                 renderer.clear();
 
                 renderer.draw_cubes();
+                renderer.draw_skybox();
 
                 renderer.present();
                 fps_counter.finish_frame(current_instant);
