@@ -166,81 +166,33 @@ impl Renderer {
             gl::GenTextures(1, &mut skybox_texture_id);
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox_texture_id);
 
-            let image_data: Vec<u8> = vec![100, 100, 100, 200, 200, 200, 50, 50, 50, 210, 210, 100];
+            const CUBEMAP_LENGTH: usize = 512;
+            const NUMBER_OF_STARS: u32 = 200;
 
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_POSITIVE_X,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
-                0,
-                gl::RGB8 as GLint,
-                2,
-                2,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                image_data.as_ptr() as *const c_void,
-            );
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 2);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_POSITIVE_X, CUBEMAP_LENGTH, &image_data);
 
-            // gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-            // gl::TexParameteri(
-            //     gl::TEXTURE_CUBE_MAP,
-            //     gl::TEXTURE_MIN_FILTER,
-            //     gl::NEAREST_MIPMAP_NEAREST as GLint,
-            // );
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 3);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_POSITIVE_Y, CUBEMAP_LENGTH, &image_data);
+
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 4);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_POSITIVE_Z, CUBEMAP_LENGTH, &image_data);
+
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 5);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_NEGATIVE_X, CUBEMAP_LENGTH, &image_data);
+
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 6);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_NEGATIVE_Y, CUBEMAP_LENGTH, &image_data);
+
+            let image_data =
+                Self::generate_image_with_random_stars(CUBEMAP_LENGTH, NUMBER_OF_STARS, 7);
+            Self::upload_texture(gl::TEXTURE_CUBE_MAP_NEGATIVE_Z, CUBEMAP_LENGTH, &image_data);
+
             gl::TexParameteri(
                 gl::TEXTURE_CUBE_MAP,
                 gl::TEXTURE_MIN_FILTER,
@@ -273,6 +225,43 @@ impl Renderer {
             skybox_vertex_array_id,
             skybox_texture_id,
         }
+    }
+
+    fn upload_texture(target: GLenum, length: usize, image_data: &[u8]) {
+        unsafe {
+            gl::TexImage2D(
+                target,
+                0,
+                gl::RGB8 as GLint,
+                length as i32,
+                length as i32,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                image_data.as_ptr() as *const c_void,
+            );
+        }
+    }
+
+    fn generate_image_with_random_stars(
+        image_length: usize,
+        number_of_stars: u32,
+        seed: u32,
+    ) -> Vec<u8> {
+        let image_size = image_length * image_length;
+        let mut grayscale_pixels = vec![0; image_size];
+        let mut rng = RandomNumberGenerator::with_seed(seed);
+
+        for _ in 0..number_of_stars {
+            let x = rng.gen_range(0, image_length as u32) as usize;
+            let y = rng.gen_range(0, image_length as u32) as usize;
+            let intensity = rng.gen_range(10, 256) as u8;
+
+            let index = y * image_length + x;
+            grayscale_pixels[index] = intensity;
+        }
+
+        grayscale_pixels.iter().flat_map(|p| [*p, *p, *p]).collect()
     }
 
     pub(crate) fn window_id(&self) -> WindowId {
