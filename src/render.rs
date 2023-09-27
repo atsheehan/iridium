@@ -272,22 +272,17 @@ impl Renderer {
     }
 
     pub(crate) fn draw_cubes(&mut self) {
+        self.activate_cube_program();
+
         unsafe {
-            gl::UseProgram(self.cube_program.gl_id());
-
-            gl::BindVertexArray(self.cube_vertex_array_id);
-            gl::BindTexture(gl::TEXTURE_2D, self.cube_texture_id);
-
             gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, self.cube_count as GLint);
         }
     }
 
     pub(crate) fn draw_skybox(&mut self) {
-        unsafe {
-            gl::UseProgram(self.skybox_program.gl_id());
-            gl::BindVertexArray(self.skybox_vertex_array_id);
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.skybox_texture_id);
+        self.activate_skybox_program();
 
+        unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
@@ -319,12 +314,9 @@ impl Renderer {
         let window_size = self.window.inner_size();
         let aspect_ratio = window_size.width as f32 / window_size.height as f32;
 
-        self.cube_program.activate();
-        self.cube_program
+        self.activate_cube_program()
             .set_uniform_f32("aspect_ratio", &aspect_ratio);
-
-        self.skybox_program.activate();
-        self.skybox_program
+        self.activate_skybox_program()
             .set_uniform_f32("aspect_ratio", &aspect_ratio);
 
         unsafe {
@@ -333,21 +325,59 @@ impl Renderer {
     }
 
     pub(crate) fn set_camera(&mut self, camera: &Camera) {
-        self.cube_program.activate();
-        self.cube_program
-            .set_uniform_vec3("camera_position", camera.position());
-        self.cube_program
-            .set_uniform_f32("camera_heading", &camera.heading());
-        self.cube_program
-            .set_uniform_f32("camera_pitch", &camera.pitch());
+        let mut program = self.activate_cube_program();
+        program.set_uniform_vec3("camera_position", camera.position());
+        program.set_uniform_f32("camera_heading", &camera.heading());
+        program.set_uniform_f32("camera_pitch", &camera.pitch());
 
-        self.skybox_program.activate();
-        self.skybox_program
-            .set_uniform_vec3("camera_position", camera.position());
-        self.skybox_program
-            .set_uniform_f32("camera_heading", &camera.heading());
-        self.skybox_program
-            .set_uniform_f32("camera_pitch", &camera.pitch());
+        let mut program = self.activate_skybox_program();
+        program.set_uniform_vec3("camera_position", camera.position());
+        program.set_uniform_f32("camera_heading", &camera.heading());
+        program.set_uniform_f32("camera_pitch", &camera.pitch());
+    }
+
+    fn activate_cube_program(&mut self) -> ActiveProgram<'_> {
+        unsafe {
+            gl::UseProgram(self.cube_program.gl_id());
+            gl::BindVertexArray(self.cube_vertex_array_id);
+            gl::BindTexture(gl::TEXTURE_2D, self.cube_texture_id);
+        }
+
+        ActiveProgram {
+            program: &mut self.cube_program,
+        }
+    }
+
+    fn activate_skybox_program(&mut self) -> ActiveProgram<'_> {
+        unsafe {
+            gl::UseProgram(self.skybox_program.gl_id());
+            gl::BindVertexArray(self.skybox_vertex_array_id);
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.skybox_texture_id);
+        }
+
+        ActiveProgram {
+            program: &mut self.skybox_program,
+        }
+    }
+}
+
+struct ActiveProgram<'a> {
+    program: &'a mut Program,
+}
+
+impl<'a> ActiveProgram<'a> {
+    fn set_uniform_vec3(&mut self, name: &'static str, value: &Vec3) {
+        let Vec3(x, y, z) = *value;
+
+        unsafe {
+            gl::Uniform3f(self.program.uniform_location(name), x, y, z);
+        }
+    }
+
+    fn set_uniform_f32(&mut self, name: &'static str, value: &f32) {
+        unsafe {
+            gl::Uniform1f(self.program.uniform_location(name), *value);
+        }
     }
 }
 
@@ -413,20 +443,6 @@ impl Program {
         self.id.0
     }
 
-    fn set_uniform_vec3(&mut self, name: &'static str, value: &Vec3) {
-        let Vec3(x, y, z) = *value;
-
-        unsafe {
-            gl::Uniform3f(self.uniform_location(name), x, y, z);
-        }
-    }
-
-    fn set_uniform_f32(&mut self, name: &'static str, value: &f32) {
-        unsafe {
-            gl::Uniform1f(self.uniform_location(name), *value);
-        }
-    }
-
     fn uniform_location(&mut self, name: &'static str) -> GLint {
         match self.cached_uniform_locations.get(name) {
             Some(location) => *location,
@@ -436,12 +452,6 @@ impl Program {
                 self.cached_uniform_locations.insert(name, location);
                 location
             }
-        }
-    }
-
-    fn activate(&mut self) {
-        unsafe {
-            gl::UseProgram(self.gl_id());
         }
     }
 }
