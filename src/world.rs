@@ -1,4 +1,4 @@
-use crate::math::{Vec2, Vec3};
+use crate::math::{self, RandomNumberGenerator, Vec2, Vec3};
 
 const MOUSE_SENSITIVITY: f32 = 0.01;
 const MOVE_SPEED: f32 = 0.5;
@@ -23,7 +23,7 @@ impl World {
 
         let xz_area = (x_width * z_depth) as usize;
 
-        let heightmap = Heightmap::new(Vec2((x_width / 2) as f32, (z_depth / 2) as f32), 25.0);
+        let heightmap = Heightmap::new(16.0, 16, 16);
         let min_height = 1;
         let height_range = y_height - min_height;
 
@@ -33,7 +33,7 @@ impl World {
                 let coordinate = Coordinates(x, 0, z);
                 let xz_position = coordinate.center().xz();
 
-                let height = heightmap.height_at(xz_position.0, xz_position.1);
+                let height = heightmap.height_at(&xz_position);
                 let scaled_height = (height * height_range as f32) as u32 + min_height;
 
                 heights.push(scaled_height);
@@ -149,27 +149,101 @@ impl Camera {
 
 /// Describes how elevation varies across the x-z plane.
 struct Heightmap {
-    center: Vec2,
-    spread: f32,
+    cell_size: f32,
+    num_x_cells: u32,
+    num_z_cells: u32,
+    heights: Vec<f32>,
 }
 
 impl Heightmap {
-    fn new(center: Vec2, spread: f32) -> Self {
-        Self { center, spread }
+    fn new(cell_size: f32, num_x_cells: u32, num_z_cells: u32) -> Self {
+        let mut rng = RandomNumberGenerator::with_seed(32131);
+
+        let num_values = ((num_z_cells + 1) * (num_x_cells + 1)) as usize;
+        let mut heights = Vec::with_capacity(num_values);
+
+        for _ in 0..num_values {
+            heights.push(rng.gen_f32());
+        }
+
+        Self {
+            cell_size,
+            num_x_cells,
+            num_z_cells,
+            heights,
+        }
     }
 
-    fn height_at(&self, x: f32, z: f32) -> f32 {
-        let Vec2(x_center, z_center) = self.center;
-        let spread = self.spread * self.spread * 2.0;
+    fn height_at(&self, xz_position: &Vec2) -> f32 {
+        if self.is_out_of_range(xz_position) {
+            return 0.0;
+        }
 
-        let dx = x_center - x;
-        let dz = z_center - z;
+        let normalized_position = self.normalize_position(xz_position);
 
-        let x_term = (dx * dx) / spread;
-        let z_term = (dz * dz) / spread;
+        let x0z0_height = self.height_at_x0z0(&normalized_position);
+        let x0z1_height = self.height_at_x0z1(&normalized_position);
+        let x1z0_height = self.height_at_x1z0(&normalized_position);
+        let x1z1_height = self.height_at_x1z1(&normalized_position);
 
-        let sum = -(x_term + z_term);
-        sum.exp()
+        let x_frac = normalized_position.0.fract();
+        let z_frac = normalized_position.1.fract();
+
+        let x0_height = math::interpolate(x0z0_height, x0z1_height, z_frac);
+        let x1_height = math::interpolate(x1z0_height, x1z1_height, z_frac);
+
+        math::interpolate(x0_height, x1_height, x_frac)
+    }
+
+    fn is_out_of_range(&self, xz_position: &Vec2) -> bool {
+        let Vec2(x, z) = *xz_position;
+
+        x < self.min_x() || x >= self.max_x() || z < self.min_z() || z >= self.max_z()
+    }
+
+    fn normalize_position(&self, xz_position: &Vec2) -> Vec2 {
+        *xz_position / self.cell_size
+    }
+
+    fn min_x(&self) -> f32 {
+        0.0
+    }
+
+    fn max_x(&self) -> f32 {
+        self.cell_size * self.num_x_cells as f32
+    }
+
+    fn min_z(&self) -> f32 {
+        0.0
+    }
+
+    fn max_z(&self) -> f32 {
+        self.cell_size * self.num_z_cells as f32
+    }
+
+    fn height_at_x0z0(&self, normalized_position: &Vec2) -> f32 {
+        let Vec2(x, z) = *normalized_position;
+        self.height_at_index(x as usize, z as usize)
+    }
+
+    fn height_at_x1z0(&self, normalized_position: &Vec2) -> f32 {
+        let Vec2(x, z) = *normalized_position;
+        self.height_at_index((x as usize) + 1, z as usize)
+    }
+
+    fn height_at_x0z1(&self, normalized_position: &Vec2) -> f32 {
+        let Vec2(x, z) = *normalized_position;
+        self.height_at_index(x as usize, (z as usize) + 1)
+    }
+
+    fn height_at_x1z1(&self, normalized_position: &Vec2) -> f32 {
+        let Vec2(x, z) = *normalized_position;
+        self.height_at_index(x as usize + 1, z as usize + 1)
+    }
+
+    fn height_at_index(&self, xi: usize, zi: usize) -> f32 {
+        let i = zi * self.num_x_cells as usize + xi;
+        self.heights[i]
     }
 }
 

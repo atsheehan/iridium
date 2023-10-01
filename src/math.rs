@@ -1,7 +1,15 @@
-use std::ops::Add;
+use std::ops::{Add, Div};
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec2(pub(crate) f32, pub(crate) f32);
+
+impl Div<f32> for Vec2 {
+    type Output = Vec2;
+
+    fn div(self, denominator: f32) -> Self::Output {
+        Self(self.0 / denominator, self.1 / denominator)
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec3(pub(crate) f32, pub(crate) f32, pub(crate) f32);
@@ -77,6 +85,12 @@ impl RandomNumberGenerator {
         let range = max - min;
         min + self.gen_u32() % range
     }
+
+    // Generates an f32 value between [0.0, 1.0).
+    pub(crate) fn gen_f32(&mut self) -> f32 {
+        let value = self.gen_u32();
+        value as f32 / u32::MAX as f32
+    }
 }
 
 #[cfg(test)]
@@ -116,4 +130,8 @@ mod tests {
             a, b
         );
     }
+}
+
+pub(crate) fn interpolate(value_a: f32, value_b: f32, t: f32) -> f32 {
+    (1.0 - t) * value_a + t * value_b
 }
