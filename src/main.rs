@@ -4,8 +4,9 @@ mod render;
 use math::Vec3;
 use render::Renderer;
 use winit::{
-    event::{Event, WindowEvent},
+    event::{ElementState, Event, KeyEvent, WindowEvent},
     event_loop::EventLoop,
+    keyboard::{KeyCode, PhysicalKey},
 };
 
 fn main() {
@@ -19,6 +20,27 @@ fn main() {
                 window_id,
             } if window_id == renderer.window_id() => {
                 window_target.exit();
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::KeyboardInput {
+                        event:
+                            KeyEvent {
+                                state,
+                                physical_key,
+                                ..
+                            },
+                        ..
+                    },
+                window_id,
+            } if window_id == renderer.window_id() => {
+                #[allow(clippy::single_match)]
+                match (state, physical_key) {
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::Escape)) => {
+                        window_target.exit();
+                    }
+                    _ => {}
+                };
             }
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
