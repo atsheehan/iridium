@@ -10,8 +10,10 @@ use winit::{
 };
 
 fn main() {
+    let options = get_options();
+
     let event_loop = EventLoop::new().unwrap();
-    let mut renderer = Renderer::new(&event_loop);
+    let mut renderer = Renderer::new(&event_loop, options.windowed);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -57,4 +59,14 @@ fn main() {
             _ => (),
         })
         .unwrap();
+}
+
+struct GameOptions {
+    windowed: bool,
+}
+
+fn get_options() -> GameOptions {
+    let args: Vec<String> = std::env::args().collect();
+    let windowed = args.iter().any(|arg| arg == "-w" || arg == "--windowed");
+    GameOptions { windowed }
 }
