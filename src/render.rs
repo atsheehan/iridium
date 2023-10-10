@@ -15,7 +15,7 @@ use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
     event_loop::EventLoop,
-    window::{Window, WindowBuilder, WindowId},
+    window::{Fullscreen, Window, WindowBuilder, WindowId},
 };
 
 use crate::math::{RandomNumberGenerator, Vec3};
@@ -31,8 +31,16 @@ pub(crate) struct Renderer {
 }
 
 impl Renderer {
-    pub(crate) fn new(event_loop: &EventLoop<()>) -> Self {
-        let window_builder = WindowBuilder::new().with_title("iridium");
+    pub(crate) fn new(event_loop: &EventLoop<()>, windowed: bool) -> Self {
+        let fullscreen_option = if windowed {
+            None
+        } else {
+            Some(Fullscreen::Borderless(None))
+        };
+
+        let window_builder = WindowBuilder::new()
+            .with_title("iridium")
+            .with_fullscreen(fullscreen_option);
 
         let config_template = ConfigTemplateBuilder::default();
         let (window, config) = DisplayBuilder::new()
