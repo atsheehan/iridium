@@ -18,7 +18,7 @@ use winit::{
     window::{Window, WindowBuilder, WindowId},
 };
 
-use crate::math::Vec3;
+use crate::math::{RandomNumberGenerator, Vec3};
 
 const CUBE_VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
 const CUBE_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
@@ -87,18 +87,17 @@ impl Renderer {
             gl::GenTextures(1, &mut cube_texture_id);
             gl::BindTexture(gl::TEXTURE_2D, cube_texture_id);
 
-            const TEXTURE_WIDTH: usize = 2;
-            const TEXTURE_HEIGHT: usize = 2;
+            const TEXTURE_WIDTH: usize = 8;
+            const TEXTURE_HEIGHT: usize = 8;
             const VALUES_PER_PIXEL: usize = 3;
             const TEXTURE_SIZE: usize = TEXTURE_WIDTH * TEXTURE_HEIGHT * VALUES_PER_PIXEL;
 
-            #[rustfmt::skip]
-            let data: [u8; TEXTURE_SIZE] = [
-                252, 244, 183,
-                137, 233, 51,
-                117, 21, 246,
-                157, 12, 112
-            ];
+            let mut rng = RandomNumberGenerator::with_seed(42);
+            let mut data: Vec<u8> = Vec::with_capacity(TEXTURE_SIZE);
+
+            for _ in 0..TEXTURE_SIZE {
+                data.push(rng.gen_range(120, 180) as u8);
+            }
 
             gl::TexImage2D(
                 gl::TEXTURE_2D,
