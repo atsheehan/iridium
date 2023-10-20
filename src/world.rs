@@ -1,13 +1,13 @@
-use crate::math::Vec3;
+use crate::math::{RandomNumberGenerator, Vec3};
 
 const MOUSE_SENSITIVITY: f32 = 0.001;
 const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
     x_width: u32,
-    y_height: u32,
     z_depth: u32,
     camera: Camera,
+    heights: Vec<u32>,
 }
 
 impl World {
@@ -21,11 +21,20 @@ impl World {
             pitch: 0.0,
         };
 
+        let mut rng = RandomNumberGenerator::with_seed(42);
+        let xz_area = (x_width * z_depth) as usize;
+
+        let mut heights = Vec::with_capacity(xz_area);
+
+        for _ in 0..xz_area {
+            heights.push(rng.gen_range(1, y_height));
+        }
+
         Self {
             x_width,
-            y_height,
             z_depth,
             camera,
+            heights,
         }
     }
 
@@ -34,17 +43,13 @@ impl World {
         self.camera.position = self.camera.position + actual_velocity;
     }
 
-    pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> {
-        let x_start = 0;
-        let x_end = self.x_width;
-        let y_start = 0;
-        let y_end = self.y_height;
-        let z_start = 0;
-        let z_end = self.z_depth;
+    pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+        (0..self.z_depth).flat_map(move |z| {
+            (0..self.x_width).flat_map(move |x| {
+                let index = ((self.x_width * z) + x) as usize;
+                let y_max = self.heights[index];
 
-        (x_start..x_end).flat_map(move |x| {
-            (y_start..y_end).flat_map(move |y| {
-                (z_start..z_end).map(move |z| Vec3(x as f32, y as f32, z as f32))
+                (0..y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
             })
         })
     }
