@@ -24,7 +24,7 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let mut renderer = Renderer::new(&event_loop, options.windowed);
 
-    let mut world = World::new(1000, 1000);
+    let mut world = World::new(100, 100, 100);
     renderer.update_block_cache(world.block_positions());
 
     let mut last_instant = Instant::now();
