@@ -5,14 +5,17 @@ const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
     x_width: u32,
+    y_height: u32,
     z_depth: u32,
     camera: Camera,
 }
 
 impl World {
-    pub(crate) fn new(x_width: u32, z_depth: u32) -> Self {
+    pub(crate) fn new(x_width: u32, y_height: u32, z_depth: u32) -> Self {
+        let starting_position = Vec3((x_width / 2) as f32, (y_height + 1) as f32, 0.0);
+
         let camera = Camera {
-            position: Vec3(0.0, 0.0, 0.0),
+            position: starting_position,
             velocity: Vec3(0.0, 0.0, 0.0),
             heading: 0.0,
             pitch: 0.0,
@@ -20,6 +23,7 @@ impl World {
 
         Self {
             x_width,
+            y_height,
             z_depth,
             camera,
         }
@@ -33,11 +37,16 @@ impl World {
     pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> {
         let x_start = 0;
         let x_end = self.x_width;
+        let y_start = 0;
+        let y_end = self.y_height;
         let z_start = 0;
         let z_end = self.z_depth;
 
-        (x_start..x_end)
-            .flat_map(move |x| (z_start..z_end).map(move |z| Vec3(x as f32, -2.0, z as f32)))
+        (x_start..x_end).flat_map(move |x| {
+            (y_start..y_end).flat_map(move |y| {
+                (z_start..z_end).map(move |z| Vec3(x as f32, y as f32, z as f32))
+            })
+        })
     }
 
     pub(crate) fn start_moving_forward(&mut self) {
