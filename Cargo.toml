@@ -9,3 +9,9 @@ edition = "2021"
 
 # Cross-platform window creation and event handling
 winit = "0.29.2"
+
+# OpenGL context creation
+glutin = "0.31.0"
+glutin-winit = "0.4.2"
+raw-window-handle = "0.5.2"
+gl = "0.14.0"
