@@ -25,7 +25,8 @@ impl World {
     }
 
     pub(crate) fn update(&mut self) {
-        self.camera.position = self.camera.position + self.camera.velocity;
+        let actual_velocity = self.camera.velocity.rotate_y(self.camera.heading);
+        self.camera.position = self.camera.position + actual_velocity;
     }
 
     pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> {
