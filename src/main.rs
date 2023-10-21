@@ -1,3 +1,14 @@
+use std::ffi::CString;
+
+use glutin::{
+    config::ConfigTemplateBuilder,
+    context::{ContextApi, ContextAttributesBuilder, Version},
+    display::GetGlDisplay,
+    prelude::{GlDisplay, NotCurrentGlContext},
+    surface::{GlSurface, SurfaceAttributesBuilder},
+};
+use glutin_winit::{DisplayBuilder, GlWindow};
+use raw_window_handle::HasRawWindowHandle;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::EventLoop,
@@ -6,10 +17,42 @@ use winit::{
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_title("iridium")
-        .build(&event_loop)
+    let window_builder = WindowBuilder::new().with_title("iridium");
+
+    let config_template = ConfigTemplateBuilder::default();
+    let (window, config) = DisplayBuilder::new()
+        .with_window_builder(Some(window_builder))
+        .build(&event_loop, config_template, |mut configs| {
+            configs.next().unwrap()
+        })
         .unwrap();
+    let window = window.unwrap();
+    let display = config.display();
+
+    let context_attributes = ContextAttributesBuilder::new()
+        .with_context_api(ContextApi::OpenGl(Some(Version::new(3, 3))))
+        .build(Some(window.raw_window_handle()));
+
+    let surface_attributes = window.build_surface_attributes(SurfaceAttributesBuilder::default());
+    let surface = unsafe {
+        display
+            .create_window_surface(&config, &surface_attributes)
+            .unwrap()
+    };
+
+    let context = unsafe {
+        display
+            .create_context(&config, &context_attributes)
+            .unwrap()
+            .make_current(&surface)
+            .unwrap()
+    };
+
+    gl::load_with(|s| display.get_proc_address(&CString::new(s).unwrap()));
+
+    unsafe {
+        gl::ClearColor(0.6, 0.4, 0.8, 1.0);
+    }
 
     event_loop
         .run(move |event, window_target| match event {
@@ -18,6 +61,16 @@ fn main() {
                 window_id,
             } if window_id == window.id() => {
                 window_target.exit();
+            }
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                window_id,
+            } if window_id == window.id() => {
+                unsafe {
+                    gl::Clear(gl::COLOR_BUFFER_BIT);
+                }
+
+                surface.swap_buffers(&context).unwrap();
             }
             _ => (),
         })
