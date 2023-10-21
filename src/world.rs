@@ -1,6 +1,6 @@
 use crate::math::Vec3;
 
-const MOVE_DISTANCE: f32 = 0.5;
+const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
     x_width: u32,
@@ -12,6 +12,7 @@ impl World {
     pub(crate) fn new(x_width: u32, z_depth: u32) -> Self {
         let camera = Camera {
             position: Vec3(0.0, 0.0, 0.0),
+            velocity: Vec3(0.0, 0.0, 0.0),
         };
 
         Self {
@@ -19,6 +20,10 @@ impl World {
             z_depth,
             camera,
         }
+    }
+
+    pub(crate) fn update(&mut self) {
+        self.camera.position = self.camera.position + self.camera.velocity;
     }
 
     pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> {
@@ -31,28 +36,52 @@ impl World {
             .flat_map(move |x| (z_start..z_end).map(move |z| Vec3(x as f32, -2.0, z as f32)))
     }
 
-    pub(crate) fn move_forward(&mut self) {
-        self.camera.position = self.camera.position + Vec3(0.0, 0.0, MOVE_DISTANCE);
+    pub(crate) fn start_moving_forward(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_z(MOVE_SPEED);
     }
 
-    pub(crate) fn move_backward(&mut self) {
-        self.camera.position = self.camera.position + Vec3(0.0, 0.0, -MOVE_DISTANCE);
+    pub(crate) fn stop_moving_forward(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_z(0.0);
     }
 
-    pub(crate) fn move_left(&mut self) {
-        self.camera.position = self.camera.position + Vec3(-MOVE_DISTANCE, 0.0, 0.0);
+    pub(crate) fn start_moving_backward(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_z(-MOVE_SPEED);
     }
 
-    pub(crate) fn move_right(&mut self) {
-        self.camera.position = self.camera.position + Vec3(MOVE_DISTANCE, 0.0, 0.0);
+    pub(crate) fn stop_moving_backward(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_z(0.0);
     }
 
-    pub(crate) fn move_up(&mut self) {
-        self.camera.position = self.camera.position + Vec3(0.0, MOVE_DISTANCE, 0.0);
+    pub(crate) fn start_moving_left(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_x(-MOVE_SPEED);
     }
 
-    pub(crate) fn move_down(&mut self) {
-        self.camera.position = self.camera.position + Vec3(0.0, -MOVE_DISTANCE, 0.0);
+    pub(crate) fn stop_moving_left(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_x(0.0);
+    }
+
+    pub(crate) fn start_moving_right(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_x(MOVE_SPEED);
+    }
+
+    pub(crate) fn stop_moving_right(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_x(0.0);
+    }
+
+    pub(crate) fn start_moving_up(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_y(MOVE_SPEED);
+    }
+
+    pub(crate) fn stop_moving_up(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_y(0.0);
+    }
+
+    pub(crate) fn start_moving_down(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_y(-MOVE_SPEED);
+    }
+
+    pub(crate) fn stop_moving_down(&mut self) {
+        self.camera.velocity = self.camera.velocity.set_y(0.0);
     }
 
     pub(crate) fn camera(&self) -> &Camera {
@@ -62,6 +91,7 @@ impl World {
 
 pub(crate) struct Camera {
     position: Vec3,
+    velocity: Vec3,
 }
 
 impl Camera {
