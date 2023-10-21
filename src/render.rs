@@ -18,7 +18,10 @@ use winit::{
     window::{Fullscreen, Window, WindowBuilder, WindowId},
 };
 
-use crate::math::{RandomNumberGenerator, Vec3};
+use crate::{
+    math::{RandomNumberGenerator, Vec3},
+    world::Camera,
+};
 
 const CUBE_VERTEX_SHADER_SRC: &str = include_str!("../shaders/cube.vert");
 const CUBE_FRAGMENT_SHADER_SRC: &str = include_str!("../shaders/cube.frag");
@@ -178,6 +181,15 @@ impl Renderer {
         unsafe {
             gl::Viewport(0, 0, window_size.width as i32, window_size.height as i32);
         }
+    }
+
+    pub(crate) fn set_camera(&mut self, camera: &Camera) {
+        self.cube_program
+            .set_uniform_vec3("camera_position", camera.position());
+    }
+
+    pub(crate) fn redraw(&mut self) {
+        self.window.request_redraw();
     }
 }
 
