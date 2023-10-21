@@ -110,6 +110,17 @@ impl Renderer {
     pub(crate) fn present(&mut self) {
         self.surface.swap_buffers(&self.context).unwrap();
     }
+
+    pub(crate) fn set_viewport(&mut self) {
+        let window_size = self.window.inner_size();
+        let aspect_ratio = window_size.width as f32 / window_size.height as f32;
+        self.cube_program
+            .set_uniform_f32("aspect_ratio", &aspect_ratio);
+
+        unsafe {
+            gl::Viewport(0, 0, window_size.width as i32, window_size.height as i32);
+        }
+    }
 }
 
 struct ProgramId(GLuint);
@@ -175,11 +186,20 @@ impl Program {
     fn set_uniform_vec3(&mut self, name: &str, value: &Vec3) {
         let Vec3(x, y, z) = *value;
 
-        let cstr_name = CString::new(name).unwrap();
-        let location = unsafe { gl::GetUniformLocation(self.gl_id(), cstr_name.as_ptr()) };
         unsafe {
-            gl::Uniform3f(location, x, y, z);
+            gl::Uniform3f(self.uniform_location(name), x, y, z);
         }
+    }
+
+    fn set_uniform_f32(&mut self, name: &str, value: &f32) {
+        unsafe {
+            gl::Uniform1f(self.uniform_location(name), *value);
+        }
+    }
+
+    fn uniform_location(&self, name: &str) -> GLint {
+        let cstr_name = CString::new(name).unwrap();
+        unsafe { gl::GetUniformLocation(self.gl_id(), cstr_name.as_ptr()) }
     }
 }
 
