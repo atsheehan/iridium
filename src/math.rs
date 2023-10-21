@@ -3,6 +3,20 @@ use std::ops::Add;
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec3(pub(crate) f32, pub(crate) f32, pub(crate) f32);
 
+impl Vec3 {
+    pub(crate) fn set_x(&self, new_x: f32) -> Vec3 {
+        Self(new_x, self.1, self.2)
+    }
+
+    pub(crate) fn set_y(&self, new_y: f32) -> Vec3 {
+        Self(self.0, new_y, self.2)
+    }
+
+    pub(crate) fn set_z(&self, new_z: f32) -> Vec3 {
+        Self(self.0, self.1, new_z)
+    }
+}
+
 impl Add<Vec3> for Vec3 {
     type Output = Vec3;
 

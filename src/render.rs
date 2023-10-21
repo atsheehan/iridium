@@ -187,10 +187,6 @@ impl Renderer {
         self.cube_program
             .set_uniform_vec3("camera_position", camera.position());
     }
-
-    pub(crate) fn redraw(&mut self) {
-        self.window.request_redraw();
-    }
 }
 
 struct ProgramId(GLuint);
