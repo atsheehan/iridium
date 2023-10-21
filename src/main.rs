@@ -24,6 +24,7 @@ fn main() {
                 event: WindowEvent::RedrawRequested,
                 window_id,
             } if window_id == renderer.window_id() => {
+                renderer.set_viewport();
                 renderer.clear();
                 renderer.draw_cube(&Vec3(2.0, 3.0, 6.0));
                 renderer.draw_cube(&Vec3(-4.0, 0.0, 6.0));

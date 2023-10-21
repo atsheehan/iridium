@@ -4,6 +4,7 @@ const float NEAR = 0.1;
 const float FAR = 10000.0;
 
 uniform vec3 position;
+uniform float aspect_ratio = 1.0;
 
 out vec3 vertex_color;
 
@@ -82,7 +83,7 @@ void main() {
 
   mat4 world_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
-         0.0, 1.0, 0.0, 0.0,
+         0.0, aspect_ratio, 0.0, 0.0,
          0.0, 0.0, (-NEAR - FAR) / (NEAR - FAR), 2.0 * FAR * NEAR / (NEAR - FAR),
          0.0, 0.0, 1.0, 0.0);
 
