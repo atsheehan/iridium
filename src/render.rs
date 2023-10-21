@@ -92,6 +92,15 @@ impl Renderer {
         }
 
         unsafe {
+            let mut position_array_id = 0;
+            gl::GenBuffers(1, &mut position_array_id);
+            gl::BindBuffer(gl::ARRAY_BUFFER, position_array_id);
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
+            gl::VertexAttribDivisor(0, 1);
+        }
+
+        unsafe {
             let mut cube_texture_id = 0;
             gl::GenTextures(1, &mut cube_texture_id);
             gl::BindTexture(gl::TEXTURE_2D, cube_texture_id);
@@ -152,11 +161,22 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn draw_cube(&mut self, position: &Vec3) {
-        self.cube_program.set_uniform_vec3("position", position);
+    pub(crate) fn draw_cubes(&mut self, positions: impl Iterator<Item = Vec3>) {
+        let position_buffer: Vec<f32> = positions
+            .flat_map(|position| [position.x(), position.y(), position.z()])
+            .collect();
+
+        let num_instances = position_buffer.len() / 3;
 
         unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (std::mem::size_of::<f32>() * 3 * num_instances) as isize,
+                position_buffer.as_ptr() as *const c_void,
+                gl::STATIC_DRAW,
+            );
+
+            gl::DrawArraysInstanced(gl::TRIANGLES, 0, 36, num_instances as GLint);
         }
     }
 

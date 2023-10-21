@@ -1,12 +1,13 @@
 #version 150
 
+in vec3 position;
+
 const float NEAR = 0.1;
 const float FAR = 10000.0;
 
 uniform vec3 camera_position;
 uniform float camera_heading;
 uniform float camera_pitch;
-uniform vec3 position;
 uniform float aspect_ratio = 1.0;
 
 out vec2 vertex_tex_coord;
