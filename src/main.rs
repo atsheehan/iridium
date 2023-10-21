@@ -16,7 +16,7 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let mut renderer = Renderer::new(&event_loop, options.windowed);
 
-    let world = World::new(20, 20);
+    let mut world = World::new(20, 20);
 
     event_loop
         .run(move |event, window_target| match event {
@@ -39,19 +39,27 @@ fn main() {
                     },
                 window_id,
             } if window_id == renderer.window_id() => {
-                #[allow(clippy::single_match)]
                 match (state, physical_key) {
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::KeyW)) => world.move_forward(),
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::KeyS)) => world.move_backward(),
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::KeyA)) => world.move_left(),
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::KeyD)) => world.move_right(),
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::Space)) => world.move_up(),
+                    (ElementState::Pressed, PhysicalKey::Code(KeyCode::ControlLeft)) => world.move_down(),
                     (ElementState::Pressed, PhysicalKey::Code(KeyCode::Escape)) => {
                         window_target.exit();
                     }
                     _ => {}
                 };
+
+                renderer.redraw();
             }
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 window_id,
             } if window_id == renderer.window_id() => {
                 renderer.set_viewport();
+                renderer.set_camera(world.camera());
                 renderer.clear();
 
                 for position in world.block_positions() {
