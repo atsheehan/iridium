@@ -5,6 +5,7 @@ const float FAR = 10000.0;
 
 uniform vec3 camera_position;
 uniform float camera_heading;
+uniform float camera_pitch;
 uniform vec3 position;
 uniform float aspect_ratio = 1.0;
 
@@ -96,7 +97,15 @@ void main() {
          sin(camera_heading), 0.0, cos(camera_heading), 0.0,
          0.0, 0.0, 0.0, 1.0);
 
-  mat4 world_to_camera_transform = camera_translation * camera_heading_rotation;
+  mat4 camera_pitch_rotation =
+    mat4(1.0, 0.0, 0.0, 0.0,
+         0.0, cos(camera_pitch), sin(camera_pitch), 0.0,
+         0.0, -sin(camera_pitch), cos(camera_pitch), 0.0,
+         0.0, 0.0, 0.0, 1.0);
+
+  mat4 world_to_camera_transform = camera_translation *
+    camera_heading_rotation *
+    camera_pitch_rotation;
 
   mat4 camera_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
