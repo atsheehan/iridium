@@ -1,4 +1,15 @@
+use std::ops::Add;
+
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct Vec3(pub(crate) f32, pub(crate) f32, pub(crate) f32);
+
+impl Add<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
 
 pub(crate) struct RandomNumberGenerator {
     seed: u32,
