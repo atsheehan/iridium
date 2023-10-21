@@ -28,6 +28,18 @@ impl Vec3 {
 
         Self(new_x, new_y, new_z)
     }
+
+    pub(crate) fn x(&self) -> f32 {
+        self.0
+    }
+
+    pub(crate) fn y(&self) -> f32 {
+        self.1
+    }
+
+    pub(crate) fn z(&self) -> f32 {
+        self.2
+    }
 }
 
 impl Add<Vec3> for Vec3 {
