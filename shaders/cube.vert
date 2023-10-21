@@ -4,6 +4,7 @@ const float NEAR = 0.1;
 const float FAR = 10000.0;
 
 uniform vec3 camera_position;
+uniform float camera_heading;
 uniform vec3 position;
 uniform float aspect_ratio = 1.0;
 
@@ -83,11 +84,19 @@ void main() {
   texture_coordinates[5] = vec2(0.0, 0.0);
   vertex_tex_coord = texture_coordinates[gl_VertexID % 6];
 
-  mat4 world_to_camera_transform =
+  mat4 camera_translation =
     mat4(1.0, 0.0, 0.0, -camera_position.x,
          0.0, 1.0, 0.0, -camera_position.y,
          0.0, 0.0, 1.0, -camera_position.z,
          0.0, 0.0, 0.0, 1.0);
+
+  mat4 camera_heading_rotation =
+    mat4(cos(camera_heading), 0.0, -sin(camera_heading), 0.0,
+         0.0, 1.0, 0.0, 0.0,
+         sin(camera_heading), 0.0, cos(camera_heading), 0.0,
+         0.0, 0.0, 0.0, 1.0);
+
+  mat4 world_to_camera_transform = camera_translation * camera_heading_rotation;
 
   mat4 camera_to_clip_transform =
     mat4(1.0, 0.0, 0.0, 0.0,
