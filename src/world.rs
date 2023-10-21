@@ -1,5 +1,6 @@
 use crate::math::Vec3;
 
+const MOUSE_SENSITIVITY: f32 = 0.001;
 const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
@@ -13,6 +14,7 @@ impl World {
         let camera = Camera {
             position: Vec3(0.0, 0.0, 0.0),
             velocity: Vec3(0.0, 0.0, 0.0),
+            heading: 0.0,
         };
 
         Self {
@@ -84,6 +86,10 @@ impl World {
         self.camera.velocity = self.camera.velocity.set_y(0.0);
     }
 
+    pub(crate) fn update_camera_direction(&mut self, dx: f32, _dy: f32) {
+        self.camera.heading += dx * MOUSE_SENSITIVITY;
+    }
+
     pub(crate) fn camera(&self) -> &Camera {
         &self.camera
     }
@@ -92,10 +98,15 @@ impl World {
 pub(crate) struct Camera {
     position: Vec3,
     velocity: Vec3,
+    heading: f32,
 }
 
 impl Camera {
     pub(crate) fn position(&self) -> &Vec3 {
         &self.position
+    }
+
+    pub(crate) fn heading(&self) -> f32 {
+        self.heading
     }
 }

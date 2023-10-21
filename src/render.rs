@@ -177,6 +177,8 @@ impl Renderer {
     pub(crate) fn set_camera(&mut self, camera: &Camera) {
         self.cube_program
             .set_uniform_vec3("camera_position", camera.position());
+        self.cube_program
+            .set_uniform_f32("camera_heading", &camera.heading());
     }
 }
 

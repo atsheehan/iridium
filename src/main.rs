@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use render::Renderer;
 use time::FrameCounter;
 use winit::{
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 use world::World;
@@ -81,6 +81,12 @@ fn main() {
                     }
                     _ => {}
                 };
+            }
+            Event::DeviceEvent {
+                event: DeviceEvent::MouseMotion { delta: (dx, dy) },
+                ..
+            } => {
+                world.update_camera_direction(dx as f32, dy as f32);
             }
             Event::RedrawRequested(window_id) if window_id == renderer.window_id() => {
                 renderer.set_viewport();
