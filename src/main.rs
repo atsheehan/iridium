@@ -117,9 +117,7 @@ fn main() {
                 renderer.set_camera(world.camera());
                 renderer.clear();
 
-                for position in world.block_positions() {
-                    renderer.draw_cube(&position);
-                }
+                renderer.draw_cubes(world.block_positions());
 
                 renderer.present();
                 fps_counter.finish_frame(current_instant);
