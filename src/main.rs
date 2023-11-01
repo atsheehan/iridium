@@ -22,7 +22,7 @@ fn main() {
     let options = get_options();
 
     let event_loop = EventLoop::new().unwrap();
-    let mut renderer = Renderer::new(&event_loop, options.windowed);
+    let mut renderer = Renderer::new(&event_loop, options.windowed, options.disable_vsync);
 
     let mut world = World::new(256, 32, 256);
     renderer.update_block_cache(world.block_positions());
@@ -131,10 +131,15 @@ fn main() {
 
 struct GameOptions {
     windowed: bool,
+    disable_vsync: bool,
 }
 
 fn get_options() -> GameOptions {
     let args: Vec<String> = std::env::args().collect();
     let windowed = args.iter().any(|arg| arg == "-w" || arg == "--windowed");
-    GameOptions { windowed }
+    let disable_vsync = args.iter().any(|arg| arg == "-v" || arg == "--no-vsync");
+    GameOptions {
+        windowed,
+        disable_vsync,
+    }
 }

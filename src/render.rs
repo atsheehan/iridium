@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     ffi::{c_void, CString},
     fmt::Display,
+    num::NonZeroU32,
 };
 
 use gl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
@@ -10,7 +11,7 @@ use glutin::{
     context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext, Version},
     display::GetGlDisplay,
     prelude::{GlDisplay, NotCurrentGlContext},
-    surface::{GlSurface, Surface, SurfaceAttributesBuilder, WindowSurface},
+    surface::{GlSurface, Surface, SurfaceAttributesBuilder, SwapInterval, WindowSurface},
 };
 use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasRawWindowHandle;
@@ -44,7 +45,7 @@ pub(crate) struct Renderer {
 }
 
 impl Renderer {
-    pub(crate) fn new(event_loop: &EventLoop<()>, windowed: bool) -> Self {
+    pub(crate) fn new(event_loop: &EventLoop<()>, windowed: bool, disable_vsync: bool) -> Self {
         let fullscreen_option = if windowed {
             None
         } else {
@@ -84,6 +85,14 @@ impl Renderer {
                 .make_current(&surface)
                 .unwrap()
         };
+
+        let swap_interval = if disable_vsync {
+            SwapInterval::DontWait
+        } else {
+            SwapInterval::Wait(NonZeroU32::new(1).unwrap())
+        };
+
+        surface.set_swap_interval(&context, swap_interval).unwrap();
 
         gl::load_with(|s| display.get_proc_address(&CString::new(s).unwrap()));
 
