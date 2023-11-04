@@ -53,13 +53,13 @@ impl World {
         self.camera.position = self.camera.position + actual_velocity;
     }
 
-    pub(crate) fn block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+    pub(crate) fn visible_block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
         (0..self.z_depth).flat_map(move |z| {
-            (0..self.x_width).flat_map(move |x| {
+            (0..self.x_width).map(move |x| {
                 let index = ((self.x_width * z) + x) as usize;
-                let y_max = self.heights[index];
+                let y = self.heights[index];
 
-                (0..y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
+                Vec3(x as f32, y as f32, z as f32)
             })
         })
     }
