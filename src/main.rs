@@ -25,7 +25,7 @@ fn main() {
     let mut renderer = Renderer::new(&event_loop, options.windowed, options.disable_vsync);
 
     let mut world = World::new(256, 32, 256);
-    renderer.update_block_cache(world.block_positions());
+    renderer.update_block_cache(world.visible_block_positions());
 
     let mut last_instant = Instant::now();
     let mut fps_counter = FrameCounter::new(last_instant);
