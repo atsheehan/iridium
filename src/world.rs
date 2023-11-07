@@ -7,7 +7,7 @@ pub(crate) struct World {
     x_width: u32,
     z_depth: u32,
     camera: Camera,
-    heights: Vec<u32>,
+    heights: Vec<i32>,
 }
 
 impl World {
@@ -34,7 +34,7 @@ impl World {
                 let xz_position = coordinate.center().xz();
 
                 let height = heightmap.height_at(&xz_position);
-                let scaled_height = (height * height_range as f32) as u32 + min_height;
+                let scaled_height = (height * height_range as f32) as i32 + min_height as i32;
 
                 heights.push(scaled_height);
             }
@@ -54,14 +54,37 @@ impl World {
     }
 
     pub(crate) fn visible_block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
-        (0..self.z_depth).flat_map(move |z| {
-            (0..self.x_width).map(move |x| {
-                let index = ((self.x_width * z) + x) as usize;
-                let y = self.heights[index];
+        let x_width = self.x_width as i32;
+        let z_depth = self.z_depth as i32;
 
-                Vec3(x as f32, y as f32, z as f32)
+        (0..z_depth).flat_map(move |z| {
+            (0..x_width).flat_map(move |x| {
+                let y_max = self.height_at(x, z);
+
+                let min_neighbor_height = [
+                    self.height_at(x + 1, z),
+                    self.height_at(x - 1, z),
+                    self.height_at(x, z + 1),
+                    self.height_at(x, z - 1),
+                ]
+                .into_iter()
+                .min()
+                .unwrap();
+
+                let y_min = y_max.min(min_neighbor_height);
+
+                (y_min..=y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
             })
         })
+    }
+
+    fn height_at(&self, x: i32, z: i32) -> i32 {
+        if x < 0 || x >= self.x_width as i32 || z < 0 || z >= self.z_depth as i32 {
+            0
+        } else {
+            let index = ((self.x_width as i32 * z) + x) as usize;
+            self.heights[index]
+        }
     }
 
     pub(crate) fn start_moving_forward(&mut self) {
