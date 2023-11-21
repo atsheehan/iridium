@@ -49,8 +49,8 @@ impl World {
     }
 
     pub(crate) fn update(&mut self) {
-        let actual_velocity = self.camera.velocity.rotate_y(self.camera.heading);
-        self.camera.position = self.camera.position + actual_velocity;
+        let heading_velocity = self.camera.velocity.rotate_y(self.camera.heading);
+        self.camera.position = self.check_for_collisions(self.camera.position, heading_velocity);
     }
 
     pub(crate) fn visible_block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
@@ -146,6 +146,56 @@ impl World {
 
     pub(crate) fn camera(&self) -> &Camera {
         &self.camera
+    }
+
+    fn check_for_collisions(&self, position: Vec3, velocity: Vec3) -> Vec3 {
+        let position = self.check_for_collisions_in_x_axis(position, velocity.x());
+        let position = position.set_y(position.y() + velocity.y());
+        position.set_z(position.z() + velocity.z())
+    }
+
+    fn check_for_collisions_in_x_axis(&self, position: Vec3, move_distance: f32) -> Vec3 {
+        const BUFFER_DISTANCE: f32 = 0.02;
+
+        let range = GlobalIndexRange::along_x_axis(position, move_distance);
+
+        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+
+        if let Some(block) = colliding_block {
+            if move_distance > 0.0 {
+                position.set_x(block.left() - BUFFER_DISTANCE)
+            } else {
+                position.set_x(block.right() + BUFFER_DISTANCE)
+            }
+        } else {
+            position.set_x(position.x() + move_distance)
+        }
+    }
+
+    fn block_at(&self, index: GlobalIndex) -> Option<Block> {
+        if self.height_at(index.x(), index.z()) >= index.y() {
+            Some(Block::new(index))
+        } else {
+            None
+        }
+    }
+}
+
+struct Block {
+    index: GlobalIndex,
+}
+
+impl Block {
+    fn new(index: GlobalIndex) -> Block {
+        Self { index }
+    }
+
+    fn left(&self) -> f32 {
+        self.index.x() as f32
+    }
+
+    fn right(&self) -> f32 {
+        (self.index.x() + 1) as f32
     }
 }
 
@@ -344,6 +394,115 @@ impl Coordinates {
     fn center(&self) -> Vec3 {
         let Self(x, y, z) = *self;
         Vec3(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5)
+    }
+}
+
+enum GlobalIndexRange {
+    XAxis {
+        x_range: BidirectionalRange,
+        y: i32,
+        z: i32,
+    },
+}
+
+impl GlobalIndexRange {
+    fn along_x_axis(start: Vec3, distance: f32) -> Self {
+        let x_start = start.x() as i32;
+        let x_end = (start.x() + distance) as i32;
+
+        let y = start.y() as i32;
+        let z = start.z() as i32;
+        let x_range = BidirectionalRange::new(x_start, x_end);
+
+        Self::XAxis { y, z, x_range }
+    }
+}
+
+impl Iterator for GlobalIndexRange {
+    type Item = GlobalIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::XAxis { x_range, y, z } => x_range.next().map(|x| GlobalIndex(x, *y, *z)),
+        }
+    }
+}
+
+enum Direction {
+    Ascending,
+    Descending,
+}
+
+impl Direction {
+    fn step(&self) -> i32 {
+        match self {
+            Self::Ascending => 1,
+            Self::Descending => -1,
+        }
+    }
+}
+
+struct BidirectionalRange {
+    next: i32,
+    end: i32,
+    direction: Direction,
+}
+
+impl BidirectionalRange {
+    fn new(start: i32, end: i32) -> Self {
+        let direction = if start > end {
+            Direction::Descending
+        } else {
+            Direction::Ascending
+        };
+
+        Self {
+            next: start,
+            end,
+            direction,
+        }
+    }
+}
+
+impl Iterator for BidirectionalRange {
+    type Item = i32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let value = self.next;
+        self.next += self.direction.step();
+
+        match self.direction {
+            Direction::Ascending => {
+                if value <= self.end {
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+            Direction::Descending => {
+                if value >= self.end {
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+struct GlobalIndex(i32, i32, i32);
+
+impl GlobalIndex {
+    fn x(&self) -> i32 {
+        self.0
+    }
+
+    fn y(&self) -> i32 {
+        self.1
+    }
+
+    fn z(&self) -> i32 {
+        self.2
     }
 }
 

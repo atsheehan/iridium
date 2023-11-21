@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec3 position;
 
-const float NEAR = 0.1;
+const float NEAR = 0.01;
 const float FAR = 10000.0;
 
 uniform vec3 camera_position;
