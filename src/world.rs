@@ -150,8 +150,8 @@ impl World {
 
     fn check_for_collisions(&self, position: Vec3, velocity: Vec3) -> Vec3 {
         let position = self.check_for_collisions_in_x_axis(position, velocity.x());
-        let position = position.set_y(position.y() + velocity.y());
-        position.set_z(position.z() + velocity.z())
+        let position = self.check_for_collisions_in_y_axis(position, velocity.y());
+        self.check_for_collisions_in_z_axis(position, velocity.z())
     }
 
     fn check_for_collisions_in_x_axis(&self, position: Vec3, move_distance: f32) -> Vec3 {
@@ -169,6 +169,42 @@ impl World {
             }
         } else {
             position.set_x(position.x() + move_distance)
+        }
+    }
+
+    fn check_for_collisions_in_y_axis(&self, position: Vec3, move_distance: f32) -> Vec3 {
+        const BUFFER_DISTANCE: f32 = 0.02;
+
+        let range = GlobalIndexRange::along_y_axis(position, move_distance);
+
+        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+
+        if let Some(block) = colliding_block {
+            if move_distance > 0.0 {
+                position.set_y(block.bottom() - BUFFER_DISTANCE)
+            } else {
+                position.set_y(block.top() + BUFFER_DISTANCE)
+            }
+        } else {
+            position.set_y(position.y() + move_distance)
+        }
+    }
+
+    fn check_for_collisions_in_z_axis(&self, position: Vec3, move_distance: f32) -> Vec3 {
+        const BUFFER_DISTANCE: f32 = 0.02;
+
+        let range = GlobalIndexRange::along_z_axis(position, move_distance);
+
+        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+
+        if let Some(block) = colliding_block {
+            if move_distance > 0.0 {
+                position.set_z(block.near() - BUFFER_DISTANCE)
+            } else {
+                position.set_z(block.far() + BUFFER_DISTANCE)
+            }
+        } else {
+            position.set_z(position.z() + move_distance)
         }
     }
 
@@ -196,6 +232,22 @@ impl Block {
 
     fn right(&self) -> f32 {
         (self.index.x() + 1) as f32
+    }
+
+    fn top(&self) -> f32 {
+        (self.index.y() + 1) as f32
+    }
+
+    fn bottom(&self) -> f32 {
+        self.index.y() as f32
+    }
+
+    fn near(&self) -> f32 {
+        self.index.z() as f32
+    }
+
+    fn far(&self) -> f32 {
+        (self.index.z() + 1) as f32
     }
 }
 
@@ -398,10 +450,20 @@ impl Coordinates {
 }
 
 enum GlobalIndexRange {
-    XAxis {
+    X {
         x_range: BidirectionalRange,
         y: i32,
         z: i32,
+    },
+    Y {
+        y_range: BidirectionalRange,
+        x: i32,
+        z: i32,
+    },
+    Z {
+        x: i32,
+        y: i32,
+        z_range: BidirectionalRange,
     },
 }
 
@@ -414,7 +476,29 @@ impl GlobalIndexRange {
         let z = start.z() as i32;
         let x_range = BidirectionalRange::new(x_start, x_end);
 
-        Self::XAxis { y, z, x_range }
+        Self::X { y, z, x_range }
+    }
+
+    fn along_y_axis(start: Vec3, distance: f32) -> Self {
+        let y_start = start.y() as i32;
+        let y_end = (start.y() + distance) as i32;
+
+        let x = start.x() as i32;
+        let z = start.z() as i32;
+        let y_range = BidirectionalRange::new(y_start, y_end);
+
+        Self::Y { x, z, y_range }
+    }
+
+    fn along_z_axis(start: Vec3, distance: f32) -> Self {
+        let z_start = start.z() as i32;
+        let z_end = (start.z() + distance) as i32;
+
+        let x = start.x() as i32;
+        let y = start.y() as i32;
+        let z_range = BidirectionalRange::new(z_start, z_end);
+
+        Self::Z { x, y, z_range }
     }
 }
 
@@ -423,7 +507,9 @@ impl Iterator for GlobalIndexRange {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::XAxis { x_range, y, z } => x_range.next().map(|x| GlobalIndex(x, *y, *z)),
+            Self::X { x_range, y, z } => x_range.next().map(|x| GlobalIndex(x, *y, *z)),
+            Self::Y { x, y_range, z } => y_range.next().map(|y| GlobalIndex(*x, y, *z)),
+            Self::Z { x, y, z_range } => z_range.next().map(|z| GlobalIndex(*x, *y, z)),
         }
     }
 }
