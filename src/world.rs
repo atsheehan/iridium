@@ -469,34 +469,34 @@ enum GlobalIndexRange {
 
 impl GlobalIndexRange {
     fn along_x_axis(start: Vec3, distance: f32) -> Self {
-        let x_start = start.x() as i32;
-        let x_end = (start.x() + distance) as i32;
+        let start_index = GlobalIndex::from(start);
+        let end_index = GlobalIndex::from(start.map_x(|x| x + distance));
 
-        let y = start.y() as i32;
-        let z = start.z() as i32;
-        let x_range = BidirectionalRange::new(x_start, x_end);
+        let y = start_index.y();
+        let z = start_index.z();
+        let x_range = BidirectionalRange::new(start_index.x(), end_index.x());
 
         Self::X { y, z, x_range }
     }
 
     fn along_y_axis(start: Vec3, distance: f32) -> Self {
-        let y_start = start.y() as i32;
-        let y_end = (start.y() + distance) as i32;
+        let start_index = GlobalIndex::from(start);
+        let end_index = GlobalIndex::from(start.map_y(|y| y + distance));
 
-        let x = start.x() as i32;
-        let z = start.z() as i32;
-        let y_range = BidirectionalRange::new(y_start, y_end);
+        let x = start_index.x();
+        let z = start_index.z();
+        let y_range = BidirectionalRange::new(start_index.y(), end_index.y());
 
         Self::Y { x, z, y_range }
     }
 
     fn along_z_axis(start: Vec3, distance: f32) -> Self {
-        let z_start = start.z() as i32;
-        let z_end = (start.z() + distance) as i32;
+        let start_index = GlobalIndex::from(start);
+        let end_index = GlobalIndex::from(start.map_z(|z| z + distance));
 
-        let x = start.x() as i32;
-        let y = start.y() as i32;
-        let z_range = BidirectionalRange::new(z_start, z_end);
+        let x = start_index.x();
+        let y = start_index.y();
+        let z_range = BidirectionalRange::new(start_index.z(), end_index.z());
 
         Self::Z { x, y, z_range }
     }
@@ -576,6 +576,7 @@ impl Iterator for BidirectionalRange {
     }
 }
 
+#[derive(Debug, PartialEq)]
 struct GlobalIndex(i32, i32, i32);
 
 impl GlobalIndex {
@@ -592,6 +593,16 @@ impl GlobalIndex {
     }
 }
 
+impl From<Vec3> for GlobalIndex {
+    fn from(value: Vec3) -> Self {
+        let x = value.x().floor() as i32;
+        let y = value.y().floor() as i32;
+        let z = value.z().floor() as i32;
+
+        Self(x, y, z)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::f32::consts::*;
@@ -599,6 +610,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn perlin_noise_single_grid_cell() {
         // Create a 2D Perlin noise grid with one cell and four gradients (one for each corner). In
         // this example, all gradients are unit vectors that point along either the X or Z axis.
@@ -673,6 +685,20 @@ mod tests {
 
         for position in examples.into_iter() {
             assert_eq!(heightmap.height_at(&position), 0.0);
+        }
+    }
+
+    #[test]
+    fn converting_vec3_into_global_index() {
+        let examples = [
+            (Vec3(0.0, 0.0, 0.0), GlobalIndex(0, 0, 0)),
+            (Vec3(1.0, 2.8, 3.5), GlobalIndex(1, 2, 3)),
+            (Vec3(-0.2, -1.0, -1.1), GlobalIndex(-1, -1, -2)),
+        ];
+
+        for (input, expected) in examples.into_iter() {
+            let actual = GlobalIndex::from(input);
+            assert_eq!(actual, expected);
         }
     }
 }

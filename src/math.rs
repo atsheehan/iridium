@@ -73,6 +73,18 @@ impl Vec3 {
     pub(crate) fn xz(&self) -> Vec2 {
         Vec2(self.0, self.2)
     }
+
+    pub(crate) fn map_x<F: FnOnce(f32) -> f32>(&self, f: F) -> Self {
+        Self(f(self.0), self.1, self.2)
+    }
+
+    pub(crate) fn map_y<F: FnOnce(f32) -> f32>(&self, f: F) -> Self {
+        Self(self.0, f(self.1), self.2)
+    }
+
+    pub(crate) fn map_z<F: FnOnce(f32) -> f32>(&self, f: F) -> Self {
+        Self(self.0, self.1, f(self.2))
+    }
 }
 
 impl Add<Vec3> for Vec3 {
