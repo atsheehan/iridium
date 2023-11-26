@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use render::Renderer;
 use time::FrameCounter;
 use winit::{
-    event::{DeviceEvent, ElementState, Event, KeyEvent, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, KeyEvent, MouseButton, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
 };
@@ -95,6 +95,17 @@ fn main() {
                     _ => {}
                 };
             }
+            #[allow(clippy::single_match)]
+            Event::WindowEvent {
+                event: WindowEvent::MouseInput { state, button, .. },
+                window_id,
+            } if window_id == renderer.window_id() => match (button, state) {
+                (MouseButton::Left, ElementState::Pressed) => {
+                    world.destroy_block();
+                    renderer.update_block_cache(world.visible_block_positions());
+                }
+                _ => {}
+            },
             Event::DeviceEvent {
                 event: DeviceEvent::MouseMotion { delta: (dx, dy) },
                 ..

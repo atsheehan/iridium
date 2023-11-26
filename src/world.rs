@@ -87,6 +87,16 @@ impl World {
         }
     }
 
+    fn decrement_height_at(&mut self, x: i32, z: i32) {
+        if x >= 0 && x < self.x_width as i32 && z >= 0 && z < self.z_depth as i32 {
+            let index = ((self.x_width as i32 * z) + x) as usize;
+
+            if self.heights[index] > 0 {
+                self.heights[index] -= 1;
+            }
+        }
+    }
+
     pub(crate) fn start_moving_forward(&mut self) {
         self.camera.velocity = self.camera.velocity.set_z(MOVE_SPEED);
     }
@@ -214,6 +224,14 @@ impl World {
         } else {
             None
         }
+    }
+
+    pub(crate) fn destroy_block(&mut self) {
+        self.destroy_block_at(GlobalIndex::from(self.camera.position.map_y(|y| y - 1.0)));
+    }
+
+    fn destroy_block_at(&mut self, position: GlobalIndex) {
+        self.decrement_height_at(position.x(), position.z());
     }
 }
 
