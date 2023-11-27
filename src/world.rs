@@ -167,6 +167,7 @@ impl World {
     }
 }
 
+#[derive(Copy, Clone)]
 struct Block {
     index: GlobalIndex,
 }
@@ -226,6 +227,7 @@ struct Terrain {
     x_width: u32,
     z_depth: u32,
     heights: Vec<i32>,
+    blocks: BlockStorage,
 }
 
 impl Terrain {
@@ -234,6 +236,7 @@ impl Terrain {
         let min_height = 1;
         let height_range = y_height - min_height;
 
+        let mut blocks = BlockStorage::new(x_width, y_height, z_depth);
         let mut heights = Vec::with_capacity(xz_area);
         for x in 0..x_width {
             for z in 0..z_depth {
@@ -243,11 +246,15 @@ impl Terrain {
                 let height = heightmap.height_at(&xz_position);
                 let scaled_height = (height * height_range as f32) as i32 + min_height as i32;
 
+                for y in 0..=scaled_height {
+                    blocks.put_block(Coordinates(x, y as u32, z));
+                }
+
                 heights.push(scaled_height);
             }
         }
 
-        Self { heights, x_width, z_depth }
+        Self { heights, x_width, z_depth, blocks }
     }
 
     fn block_at(&self, index: GlobalIndex) -> Option<Block> {
@@ -300,6 +307,19 @@ impl Terrain {
                 (y_min..=y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
             })
         })
+    }
+}
+
+struct BlockStorage {
+    storage: Vec<Option<Block>>,
+}
+
+impl BlockStorage {
+    fn new(x_width: u32, y_height: u32, z_depth: u32) -> Self {
+        let num_blocks = (x_width * y_height * z_depth) as usize;
+        let storage = vec![None; num_blocks];
+
+        Self { storage }
     }
 }
 
@@ -607,7 +627,7 @@ impl Iterator for BidirectionalRange {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 struct GlobalIndex(i32, i32, i32);
 
 impl GlobalIndex {
