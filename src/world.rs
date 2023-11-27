@@ -4,10 +4,8 @@ const MOUSE_SENSITIVITY: f32 = 0.01;
 const MOVE_SPEED: f32 = 0.5;
 
 pub(crate) struct World {
-    x_width: u32,
-    z_depth: u32,
     camera: Camera,
-    heights: Vec<i32>,
+    terrain: Terrain,
 }
 
 impl World {
@@ -21,30 +19,12 @@ impl World {
             pitch: 0.0,
         };
 
-        let xz_area = (x_width * z_depth) as usize;
-
         let heightmap = Heightmap::new(16.0, 16, 16);
-        let min_height = 1;
-        let height_range = y_height - min_height;
-
-        let mut heights = Vec::with_capacity(xz_area);
-        for x in 0..x_width {
-            for z in 0..z_depth {
-                let coordinate = Coordinates(x, 0, z);
-                let xz_position = coordinate.center().xz();
-
-                let height = heightmap.height_at(&xz_position);
-                let scaled_height = (height * height_range as f32) as i32 + min_height as i32;
-
-                heights.push(scaled_height);
-            }
-        }
+        let terrain = Terrain::from_heightmap(heightmap, x_width, y_height, z_depth);
 
         Self {
-            x_width,
-            z_depth,
             camera,
-            heights,
+            terrain,
         }
     }
 
@@ -54,47 +34,7 @@ impl World {
     }
 
     pub(crate) fn visible_block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
-        let x_width = self.x_width as i32;
-        let z_depth = self.z_depth as i32;
-
-        (0..z_depth).flat_map(move |z| {
-            (0..x_width).flat_map(move |x| {
-                let y_max = self.height_at(x, z);
-
-                let min_neighbor_height = [
-                    self.height_at(x + 1, z),
-                    self.height_at(x - 1, z),
-                    self.height_at(x, z + 1),
-                    self.height_at(x, z - 1),
-                ]
-                .into_iter()
-                .min()
-                .unwrap();
-
-                let y_min = y_max.min(min_neighbor_height);
-
-                (y_min..=y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
-            })
-        })
-    }
-
-    fn height_at(&self, x: i32, z: i32) -> i32 {
-        if x < 0 || x >= self.x_width as i32 || z < 0 || z >= self.z_depth as i32 {
-            0
-        } else {
-            let index = ((self.x_width as i32 * z) + x) as usize;
-            self.heights[index]
-        }
-    }
-
-    fn decrement_height_at(&mut self, x: i32, z: i32) {
-        if x >= 0 && x < self.x_width as i32 && z >= 0 && z < self.z_depth as i32 {
-            let index = ((self.x_width as i32 * z) + x) as usize;
-
-            if self.heights[index] > 0 {
-                self.heights[index] -= 1;
-            }
-        }
+        self.terrain.visible_block_positions()
     }
 
     pub(crate) fn start_moving_forward(&mut self) {
@@ -169,7 +109,7 @@ impl World {
 
         let range = GlobalIndexRange::along_x_axis(position, move_distance);
 
-        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+        let colliding_block = range.skip(1).find_map(|index| self.terrain.block_at(index));
 
         if let Some(block) = colliding_block {
             if move_distance > 0.0 {
@@ -187,7 +127,7 @@ impl World {
 
         let range = GlobalIndexRange::along_y_axis(position, move_distance);
 
-        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+        let colliding_block = range.skip(1).find_map(|index| self.terrain.block_at(index));
 
         if let Some(block) = colliding_block {
             if move_distance > 0.0 {
@@ -205,7 +145,7 @@ impl World {
 
         let range = GlobalIndexRange::along_z_axis(position, move_distance);
 
-        let colliding_block = range.skip(1).find_map(|index| self.block_at(index));
+        let colliding_block = range.skip(1).find_map(|index| self.terrain.block_at(index));
 
         if let Some(block) = colliding_block {
             if move_distance > 0.0 {
@@ -218,20 +158,12 @@ impl World {
         }
     }
 
-    fn block_at(&self, index: GlobalIndex) -> Option<Block> {
-        if self.height_at(index.x(), index.z()) >= index.y() {
-            Some(Block::new(index))
-        } else {
-            None
-        }
-    }
-
     pub(crate) fn destroy_block(&mut self) {
         self.destroy_block_at(GlobalIndex::from(self.camera.position.map_y(|y| y - 1.0)));
     }
 
     fn destroy_block_at(&mut self, position: GlobalIndex) {
-        self.decrement_height_at(position.x(), position.z());
+        self.terrain.decrement_height_at(position.x(), position.z());
     }
 }
 
@@ -287,6 +219,87 @@ impl Camera {
 
     pub(crate) fn pitch(&self) -> f32 {
         self.pitch
+    }
+}
+
+struct Terrain {
+    x_width: u32,
+    z_depth: u32,
+    heights: Vec<i32>,
+}
+
+impl Terrain {
+    fn from_heightmap(heightmap: Heightmap, x_width: u32, y_height: u32, z_depth: u32) -> Self {
+        let xz_area = (x_width * z_depth) as usize;
+        let min_height = 1;
+        let height_range = y_height - min_height;
+
+        let mut heights = Vec::with_capacity(xz_area);
+        for x in 0..x_width {
+            for z in 0..z_depth {
+                let coordinate = Coordinates(x, 0, z);
+                let xz_position = coordinate.center().xz();
+
+                let height = heightmap.height_at(&xz_position);
+                let scaled_height = (height * height_range as f32) as i32 + min_height as i32;
+
+                heights.push(scaled_height);
+            }
+        }
+
+        Self { heights, x_width, z_depth }
+    }
+
+    fn block_at(&self, index: GlobalIndex) -> Option<Block> {
+        if self.height_at(index.x(), index.z()) >= index.y() {
+            Some(Block::new(index))
+        } else {
+            None
+        }
+    }
+
+    fn height_at(&self, x: i32, z: i32) -> i32 {
+        if x < 0 || x >= self.x_width as i32 || z < 0 || z >= self.z_depth as i32 {
+            0
+        } else {
+            let index = ((self.x_width as i32 * z) + x) as usize;
+            self.heights[index]
+        }
+    }
+
+    fn decrement_height_at(&mut self, x: i32, z: i32) {
+        if x >= 0 && x < self.x_width as i32 && z >= 0 && z < self.z_depth as i32 {
+            let index = ((self.x_width as i32 * z) + x) as usize;
+
+            if self.heights[index] > 0 {
+                self.heights[index] -= 1;
+            }
+        }
+    }
+
+    fn visible_block_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+        let x_width = self.x_width as i32;
+        let z_depth = self.z_depth as i32;
+
+        (0..z_depth).flat_map(move |z| {
+            (0..x_width).flat_map(move |x| {
+                let y_max = self.height_at(x, z);
+
+                let min_neighbor_height = [
+                    self.height_at(x + 1, z),
+                    self.height_at(x - 1, z),
+                    self.height_at(x, z + 1),
+                    self.height_at(x, z - 1),
+                ]
+                .into_iter()
+                .min()
+                .unwrap();
+
+                let y_min = y_max.min(min_neighbor_height);
+
+                (y_min..=y_max).map(move |y| Vec3(x as f32, y as f32, z as f32))
+            })
+        })
     }
 }
 
